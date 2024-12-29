@@ -1,0 +1,28 @@
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        // Removed to prevent duplication
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+
+    def newBuildDir = rootProject.layout.buildDirectory.dir("../../build").get()
+    rootProject.layout.buildDirectory = newBuildDir
+
+    subprojects {
+        def newSubprojectBuildDir = newBuildDir.dir(project.name)
+        project.layout.buildDirectory = newSubprojectBuildDir
+    }
+
+    subprojects {
+        project.evaluationDependsOn(":app")
+    }
+}
