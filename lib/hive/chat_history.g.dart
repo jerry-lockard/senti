@@ -23,13 +23,15 @@ class ChatHistoryAdapter extends TypeAdapter<ChatHistory> {
       imagesUrls: (fields[3] as List).cast<String>(),
       timestamp: fields[4] as DateTime,
       messageStatus: fields[5] as String,
+      hasMedia: fields[6] as bool,
+      isFavorite: fields[7] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, ChatHistory obj) {
     writer
-      ..writeByte(6)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.chatId)
       ..writeByte(1)
@@ -41,7 +43,11 @@ class ChatHistoryAdapter extends TypeAdapter<ChatHistory> {
       ..writeByte(4)
       ..write(obj.timestamp)
       ..writeByte(5)
-      ..write(obj.messageStatus);
+      ..write(obj.messageStatus)
+      ..writeByte(6)
+      ..write(obj.hasMedia)
+      ..writeByte(7)
+      ..write(obj.isFavorite);
   }
 
   @override

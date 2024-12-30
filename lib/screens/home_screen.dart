@@ -1,5 +1,9 @@
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:senti/providers/chat_provider.dart';
+import 'package:senti/screens/chat_history_screen.dart';
+import 'package:senti/screens/chat_screen.dart';
+import 'package:senti/screens/profile_screen.dart';
 import 'package:provider/provider.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -11,7 +15,11 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   // list of screens
-  final List<Widget> _screens = [];
+  final List<Widget> _screens = [
+    const ChatHistoryScreen(),
+    const ChatScreen(),
+    const ProfileScreen(),
+  ];
 
   @override
   Widget build(BuildContext context) {
@@ -26,6 +34,8 @@ class _HomeScreenState extends State<HomeScreen> {
             },
           ),
           bottomNavigationBar: BottomNavigationBar(
+            backgroundColor:
+                Theme.of(context).colorScheme.surface, // Added for consistency
             currentIndex: chatProvider.currentIndex,
             elevation: 0,
             selectedItemColor: Theme.of(context).colorScheme.primary,
@@ -36,14 +46,15 @@ class _HomeScreenState extends State<HomeScreen> {
             items: const [
               BottomNavigationBarItem(
                 icon: Icon(Icons.history),
+                // icon: Icon(CupertinoIcons.timelapse),
                 label: 'Chat History',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.chat_bubble_outline_rounded),
+                icon: Icon(CupertinoIcons.chat_bubble),
                 label: 'Chat',
               ),
               BottomNavigationBarItem(
-                icon: Icon(Icons.person_3_rounded),
+                icon: Icon(CupertinoIcons.person),
                 label: 'Profile',
               ),
             ],

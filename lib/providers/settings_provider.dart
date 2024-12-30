@@ -57,4 +57,24 @@ class SettingsProvider extends ChangeNotifier {
     _shouldSpeak = value;
     notifyListeners();
   }
+
+  // toggle the notifications
+  void toggleNotifications({required bool value, Settings? settings}) {
+    if (settings != null) {
+      settings.notificationsEnabled = value;
+      settings.save();
+    } else {
+      final settingsBox = Boxes.getSettings();
+      settingsBox.put(
+        0,
+        Settings(
+          isDarkTheme: _isDarkMode,
+          shouldSpeak: _shouldSpeak,
+          notificationsEnabled: value,
+        ),
+      );
+    }
+
+    notifyListeners();
+  }
 }

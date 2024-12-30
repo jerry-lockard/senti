@@ -41,7 +41,7 @@ class ChatProvider extends ChangeNotifier {
   GenerativeModel? _visionModel;
 
   // current mode
-  String _modelType = 'gemini-pro';
+  String _modelType = 'gemini-2.0-flash-exp';
 
   // loading bool
   bool _isLoading = false;
@@ -66,6 +66,12 @@ class ChatProvider extends ChangeNotifier {
   String get modelType => _modelType;
 
   bool get isLoading => _isLoading;
+
+  void removeImageAt(int index) {
+    imagesFileList?.removeAt(index);
+
+    notifyListeners();
+  }
 
   // setters
 
@@ -124,14 +130,14 @@ class ChatProvider extends ChangeNotifier {
       _model =
           _textModel ??
           GenerativeModel(
-            model: setCurrentModel(newModel: 'gemini-pro'),
+            model: setCurrentModel(newModel: 'gemini-2.0-flash-exp'),
             apiKey: ApiService.apiKey,
           );
     } else {
       _model =
           _visionModel ??
           GenerativeModel(
-            model: setCurrentModel(newModel: 'gemini-pro-vision'),
+            model: setCurrentModel(newModel: 'gemini-1.5-pro'),
             apiKey: ApiService.apiKey,
           );
     }
@@ -257,6 +263,7 @@ class ChatProvider extends ChangeNotifier {
       message: StringBuffer(message),
       imagesUrls: imagesUrls,
       timeSent: DateTime.now(),
+      isRead: false, // Initialize isRead
     );
 
     // add this message to the list on inChatMessages
@@ -303,6 +310,7 @@ class ChatProvider extends ChangeNotifier {
       role: Role.assistant,
       message: StringBuffer(),
       timeSent: DateTime.now(),
+      isRead: false, // Initialize isRead
     );
 
     // add this message to the list on inChatMessages
@@ -460,5 +468,33 @@ class ChatProvider extends ChangeNotifier {
       Hive.registerAdapter(SettingsAdapter());
       await Hive.openBox<Settings>(Constants.settingsBox);
     }
+  }
+
+  void addMessage(String text, {bool isUser = true}) {
+    final message = Message(
+      message: StringBuffer(text),
+      isRead: false,
+      messageId: const Uuid().v4(),
+      chatId: getChatId(),
+      role: isUser ? Role.user : Role.admin,
+      imagesUrls: [],
+      timeSent: DateTime.now(),
+    );
+    inChatMessages.add(message);
+    notifyListeners();
+  }
+
+  void markMessageAsRead(int index) {
+    final message = inChatMessages[index];
+    inChatMessages[index] = Message(
+      message: message.message,
+      isRead: true,
+      messageId: message.messageId,
+      chatId: message.chatId,
+      role: message.role,
+      imagesUrls: message.imagesUrls,
+      timeSent: message.timeSent,
+    );
+    notifyListeners();
   }
 }

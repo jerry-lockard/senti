@@ -22,11 +22,18 @@
             "flutterMode": "release"
         },
         {
-            "name": "senti (remote verbose)",
+            "name": "senti adb",
             "request": "launch",
             "type": "dart",
             "program": "lib/main.dart",
-            "args": ["-d", "48151FDAS006PU", "--verbose"]
+            "args": ["-d", "adb-48151FDAS006PU-dhNXlY._adb-tls-connect._tcp", "--verbose"]
+        },
+        {
+            "name": "senti wireless debug",
+            "request": "launch",
+            "type": "dart",
+            "program": "lib/main.dart",
+            "args": ["-d", "192.168.86.8:....", "--verbose"]
         }
     ]
 }

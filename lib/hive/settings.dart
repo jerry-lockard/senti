@@ -19,6 +19,9 @@ class Settings extends HiveObject {
   @HiveField(4)
   bool notificationsEnabled = true;
 
+  @HiveField(5)
+  bool privacy = true; // Added privacy field
+
   // constructor
   Settings({
     required this.isDarkTheme,
@@ -26,5 +29,6 @@ class Settings extends HiveObject {
     this.language = 'en',
     this.fontSize = 14.0,
     this.notificationsEnabled = true,
+    this.privacy = true, // default value
   });
 }

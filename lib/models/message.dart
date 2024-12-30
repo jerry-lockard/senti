@@ -1,10 +1,29 @@
+import 'package:hive/hive.dart';
+
+part 'message.g.dart';
+
+@HiveType(typeId: 0)
 class Message {
+  @HiveField(0)
   String messageId;
+
+  @HiveField(1)
   String chatId;
+
+  @HiveField(2)
   Role role;
+
+  @HiveField(3)
   StringBuffer message;
+
+  @HiveField(4)
   List<String> imagesUrls;
+
+  @HiveField(5)
   DateTime timeSent;
+
+  @HiveField(6)
+  bool isRead; // Added field
 
   // constructor
   Message({
@@ -14,6 +33,7 @@ class Message {
     required this.message,
     required this.imagesUrls,
     required this.timeSent,
+    this.isRead = false, // Default value
   });
 
   // toMap
@@ -25,6 +45,7 @@ class Message {
       'message': message.toString(),
       'imagesUrls': imagesUrls,
       'timeSent': timeSent.toIso8601String(),
+      'isRead': isRead,
     };
   }
 
@@ -37,6 +58,7 @@ class Message {
       message: StringBuffer(map['message']),
       imagesUrls: List<String>.from(map['imagesUrls']),
       timeSent: DateTime.parse(map['timeSent']),
+      isRead: map['isRead'] ?? false, // Handle JSON
     );
   }
 
@@ -48,6 +70,7 @@ class Message {
     StringBuffer? message,
     List<String>? imagesUrls,
     DateTime? timeSent,
+    bool? isRead,
   }) {
     return Message(
       messageId: messageId ?? this.messageId,
@@ -56,6 +79,7 @@ class Message {
       message: message ?? this.message,
       imagesUrls: imagesUrls ?? this.imagesUrls,
       timeSent: timeSent ?? this.timeSent,
+      isRead: isRead ?? this.isRead,
     );
   }
 
@@ -72,4 +96,4 @@ class Message {
   }
 }
 
-enum Role { user, assistant }
+enum Role { user, assistant, admin }
