@@ -5,7 +5,6 @@ import 'package:senti/screens/home_screen.dart';
 import 'package:provider/provider.dart';
 import 'package:senti/providers/chat_provider.dart';
 import 'package:senti/providers/settings_provider.dart';
-import 'package:senti/theme/theme.dart';
 import 'firebase_options.dart';
 
 void main() async {
@@ -20,38 +19,27 @@ void main() async {
         ChangeNotifierProvider(create: (context) => ChatProvider()),
         ChangeNotifierProvider(create: (context) => SettingsProvider()),
       ],
-      child: const SentiApp(),
+      child: const MyApp(),
     ),
   );
 }
 
-class SentiApp extends StatefulWidget {
-  const SentiApp({super.key});
-
-  @override
-  State<SentiApp> createState() => _SentiAppState();
-}
-
-class _SentiAppState extends State<SentiApp> {
-  @override
-  void initState() {
-    setTheme();
-    super.initState();
-  }
-
-  void setTheme() {
-    final settingsProvider = context.read<SettingsProvider>();
-    settingsProvider.getSavedSettings();
-  }
+class MyApp extends StatelessWidget {
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Senti ✨',
-      theme:
-          context.watch<SettingsProvider>().isDarkMode ? darkTheme : lightTheme,
-      debugShowCheckedModeBanner: false,
-      home: HomeScreen(),
+    return Consumer<SettingsProvider>(
+      builder: (context, settingsProvider, child) {
+        return MaterialApp(
+          title: 'Senti ✨',
+          theme:
+              settingsProvider.settings?.isDarkTheme ?? false
+                  ? ThemeData.dark()
+                  : ThemeData.light(),
+          home: const HomeScreen(),
+        );
+      },
     );
   }
 }

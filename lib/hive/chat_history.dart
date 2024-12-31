@@ -26,7 +26,7 @@ class ChatHistory extends HiveObject {
   final bool hasMedia; // Added field
 
   @HiveField(7)
-  final bool isFavorite; // Added field
+  bool isFavorite; // Added field
 
   // constructor
   ChatHistory({

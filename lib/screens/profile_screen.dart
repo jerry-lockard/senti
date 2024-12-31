@@ -1,6 +1,5 @@
 import 'dart:developer';
 import 'dart:io';
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:senti/hive/boxes.dart';
 import 'package:senti/hive/settings.dart';
@@ -24,15 +23,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String userName = 'Senti';
   final ImagePicker _picker = ImagePicker();
 
-  // pick an image
-  void pickImage() async {
+  // Properly define the pickImage function
+  Future<void> pickImage() async {
     try {
-      final pickedImage = await _picker.pickImage(
-        source: ImageSource.gallery,
-        maxHeight: 800,
-        maxWidth: 800,
-        imageQuality: 95,
-      );
+      final pickedImage = await _picker.pickImage(source: ImageSource.gallery);
       if (pickedImage != null) {
         setState(() {
           file = File(pickedImage.path);
@@ -46,10 +40,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   // get user data
   void getUserData() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // get user data fro box
+      // get user data from box
       final userBox = Boxes.getUser();
 
-      // check is user data is not empty
+      // check if user data is not empty
       if (userBox.isNotEmpty) {
         final user = userBox.getAt(0);
         setState(() {
@@ -126,212 +120,193 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Profile'),
-        centerTitle: true,
-        backgroundColor: Theme.of(context).colorScheme.primary,
-        actions: [
-          IconButton(
-            icon: const Icon(CupertinoIcons.checkmark),
-            color: Theme.of(context).colorScheme.onPrimary,
-            onPressed: () {
-              // save data
-            },
-          ),
-        ],
-      ),
-      body: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20.0, vertical: 20.0),
-        child: SingleChildScrollView(
-          child: Column(
-            children: [
-              Center(
-                child: BuildDisplayImage(
-                  file: file,
-                  userImage: userImage,
-                  onPressed: () {
-                    // open camera or gallery
-                    pickImage();
-                  },
+      body: CustomScrollView(
+        slivers: [
+          // Custom App Bar with Profile Image
+          SliverAppBar(
+            expandedHeight: 200.0,
+            floating: false,
+            pinned: false, // <- Changed from true to false
+            backgroundColor: Theme.of(context).colorScheme.primary,
+            flexibleSpace: FlexibleSpaceBar(
+              centerTitle: true,
+              title: Text(userName),
+              background: Container(
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [
+                      Theme.of(context).colorScheme.primary,
+                      Theme.of(context).colorScheme.primaryContainer,
+                    ],
+                  ),
+                ),
+                child: Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      BuildDisplayImage(
+                        file: file,
+                        userImage: userImage,
+                        onPressed: pickImage,
+                      ),
+                    ],
+                  ),
                 ),
               ),
-              const SizedBox(height: 20.0),
+            ),
+          ),
 
-              // user name
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+          // Profile Settings
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(userName, style: Theme.of(context).textTheme.titleLarge),
-                  IconButton(
-                    icon: Icon(Icons.pin_end_rounded),
-                    onPressed: changeUsername,
+                  // Account Settings Card
+                  Card(
+                    elevation: 2,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Text(
+                            'Account Settings',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                        ),
+                        ListTile(
+                          leading: Icon(
+                            Icons.person_outline,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          title: const Text('Change Username'),
+                          onTap: changeUsername,
+                        ),
+                        ListTile(
+                          leading: Icon(
+                            Icons.lock_outline,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          title: const Text('Change Password'),
+                          onTap: changePassword,
+                        ),
+                      ],
+                    ),
+                  ),
+
+                  // App Settings
+                  ValueListenableBuilder<Box<Settings>>(
+                    valueListenable: Boxes.getSettings().listenable(),
+                    builder: (context, box, _) {
+                      final settings = box.isEmpty ? null : box.getAt(0);
+                      return Card(
+                        elevation: 2,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Text(
+                                'App Settings',
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                            ),
+                            SettingsTile(
+                              icon: Icons.mic,
+                              title: 'AI Voice',
+                              value: settings?.shouldSpeak ?? false,
+                              onChanged: (value) {
+                                context.read<SettingsProvider>().toggleSpeak(
+                                  value: value,
+                                );
+                              },
+                              iconColor: Theme.of(context).colorScheme.primary,
+                            ),
+                            SettingsTile(
+                              icon: Icons.notifications_outlined,
+                              title: 'Notifications',
+                              value: settings?.notificationsEnabled ?? false,
+                              onChanged: (value) {
+                                final settingsProvider =
+                                    context.read<SettingsProvider>();
+                                settingsProvider.toggleNotifications(
+                                  value: value,
+                                ); // Corrected method
+                              },
+                              iconColor: Theme.of(context).colorScheme.primary,
+                            ),
+                            SettingsTile(
+                              icon: Icons.brightness_6,
+                              title: 'Dark Theme',
+                              value: settings?.isDarkTheme ?? false,
+                              onChanged: (value) {
+                                context.read<SettingsProvider>().toggleDarkMode(
+                                  value: value,
+                                );
+                              },
+                              iconColor: Theme.of(context).colorScheme.primary,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+
+                  // Additional Settings Card
+                  Card(
+                    elevation: 2,
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Padding(
+                          padding: const EdgeInsets.all(16.0),
+                          child: Text(
+                            'Additional Settings',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                        ),
+                        ListTile(
+                          leading: Icon(
+                            Icons.language,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          title: const Text('Language'),
+                          trailing: const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 16,
+                          ),
+                          onTap: () {
+                            // Handle language settings
+                          },
+                        ),
+                        ListTile(
+                          leading: Icon(
+                            Icons.privacy_tip_outlined,
+                            color: Theme.of(context).colorScheme.primary,
+                          ),
+                          title: const Text('Privacy'),
+                          trailing: const Icon(
+                            Icons.arrow_forward_ios,
+                            size: 16,
+                          ),
+                          onTap: () {
+                            // Handle privacy settings
+                          },
+                        ),
+                      ],
+                    ),
                   ),
                 ],
               ),
-
-              const SizedBox(height: 20.0),
-
-              // Change password
-              ElevatedButton(
-                onPressed: changePassword,
-                child: Text('Change Password'),
-              ),
-
-              const SizedBox(height: 20.0),
-
-              ValueListenableBuilder<Box<Settings>>(
-                valueListenable: Boxes.getSettings().listenable(),
-                builder: (context, box, child) {
-                  if (box.isEmpty) {
-                    return Column(
-                      children: [
-                        // ai voice
-                        SettingsTile(
-                          icon: Icons.mic,
-                          title: 'Enable AI voice',
-                          value: false,
-                          onChanged: (value) {
-                            final settingProvider =
-                                context.read<SettingsProvider>();
-                            settingProvider.toggleSpeak(value: value);
-                          },
-                          iconColor: Theme.of(context).colorScheme.primary,
-                        ),
-
-                        const SizedBox(height: 10.0),
-
-                        // Theme
-                        SettingsTile(
-                          icon: Icons.sunny,
-                          title: 'Theme',
-                          value: false,
-                          onChanged: (value) {
-                            final settingProvider =
-                                context.read<SettingsProvider>();
-                            settingProvider.toggleDarkMode(value: value);
-                          },
-                          iconColor: Theme.of(context).colorScheme.primary,
-                        ),
-
-                        const SizedBox(height: 10.0),
-
-                        // Notifications
-                        SettingsTile(
-                          icon: Icons.notifications,
-                          title: 'Enable Notifications',
-                          value: false,
-                          onChanged: (value) {
-                            final settingProvider =
-                                context.read<SettingsProvider>();
-                            settingProvider.toggleNotifications(value: value);
-                          },
-                        ),
-
-                        const SizedBox(height: 10.0),
-
-                        // Language
-                        SettingsTile(
-                          icon: Icons.settings,
-                          title: 'Language',
-                          value: false,
-                          onChanged: (value) {
-                            // Handle language change logic here
-                          },
-                        ),
-
-                        const SizedBox(height: 10.0),
-
-                        // Privacy
-                        SettingsTile(
-                          icon: Icons.lock,
-                          title: 'Privacy Settings',
-                          value: false,
-                          onChanged: (value) {
-                            // Handle privacy settings logic here
-                          },
-                        ),
-                      ],
-                    );
-                  } else {
-                    final settings = box.getAt(0);
-                    return Column(
-                      children: [
-                        // ai voice
-                        SettingsTile(
-                          icon: Icons.mic,
-                          title: 'Enable AI voice',
-                          value: settings!.shouldSpeak,
-                          onChanged: (value) {
-                            final settingProvider =
-                                context.read<SettingsProvider>();
-                            settingProvider.toggleSpeak(value: value);
-                          },
-                          iconColor: Theme.of(context).colorScheme.primary,
-                        ),
-
-                        const SizedBox(height: 10.0),
-
-                        // theme
-                        SettingsTile(
-                          icon:
-                              settings.isDarkTheme
-                                  ? Icons.dark_mode
-                                  : Icons.sunny,
-                          title: 'Theme',
-                          value: settings.isDarkTheme,
-                          onChanged: (value) {
-                            final settingProvider =
-                                context.read<SettingsProvider>();
-                            settingProvider.toggleDarkMode(value: value);
-                          },
-                          iconColor: Theme.of(context).colorScheme.primary,
-                        ),
-
-                        const SizedBox(height: 10.0),
-
-                        // Notifications
-                        SettingsTile(
-                          icon: CupertinoIcons.bell,
-                          title: 'Enable Notifications',
-                          value: settings.notificationsEnabled,
-                          onChanged: (value) {
-                            final settingProvider =
-                                context.read<SettingsProvider>();
-                            settingProvider.toggleNotifications(value: value);
-                          },
-                        ),
-
-                        const SizedBox(height: 10.0),
-
-                        // Language
-                        SettingsTile(
-                          icon: Icons.language,
-                          title: 'Language',
-                          value: false, // or any appropriate boolean value
-                          onChanged: (value) {
-                            // Handle language change logic here
-                          },
-                        ),
-
-                        const SizedBox(height: 10.0),
-
-                        // Privacy
-                        SettingsTile(
-                          icon: Icons.lock,
-                          title: 'Privacy Settings',
-                          value: settings.privacy,
-                          onChanged: (value) {
-                            // Handle privacy settings logic here
-                          },
-                        ),
-                      ],
-                    );
-                  }
-                },
-              ),
-            ],
+            ),
           ),
-        ),
+        ],
       ),
     );
   }

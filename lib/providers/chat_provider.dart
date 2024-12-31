@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:developer';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:senti/apis/api_service.dart';
 import 'package:senti/constants/constants.dart';
@@ -16,11 +15,15 @@ import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:uuid/uuid.dart';
 
 class ChatProvider extends ChangeNotifier {
+  // Add new field and getter
+  bool _navigationLocked = false;
+  bool get navigationLocked => _navigationLocked;
+
   // list of messages
   final List<Message> _inChatMessages = [];
 
-  // page controller
-  final PageController _pageController = PageController();
+  // page controller - update initial page count to match new navigation
+  PageController _pageController = PageController(initialPage: 0);
 
   // images file list
   List<XFile>? _imagesFileList = [];
@@ -31,20 +34,11 @@ class ChatProvider extends ChangeNotifier {
   // current chatId
   String _currentChatId = '';
 
-  // initialize generative model
-  GenerativeModel? _model;
-
-  // initialize text model
-  GenerativeModel? _textModel;
-
-  // initialize vision model
-  GenerativeModel? _visionModel;
-
-  // current mode
-  String _modelType = 'gemini-2.0-flash-exp';
-
   // loading bool
   bool _isLoading = false;
+
+  // Re-add ApiService instance
+  final ApiService _apiService = ApiService();
 
   // getters
   List<Message> get inChatMessages => _inChatMessages;
@@ -57,19 +51,10 @@ class ChatProvider extends ChangeNotifier {
 
   String get currentChatId => _currentChatId;
 
-  GenerativeModel? get model => _model;
-
-  GenerativeModel? get textModel => _textModel;
-
-  GenerativeModel? get visionModel => _visionModel;
-
-  String get modelType => _modelType;
-
   bool get isLoading => _isLoading;
 
   void removeImageAt(int index) {
     imagesFileList?.removeAt(index);
-
     notifyListeners();
   }
 
@@ -117,37 +102,27 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // set the current model
-  String setCurrentModel({required String newModel}) {
-    _modelType = newModel;
-    notifyListeners();
-    return newModel;
-  }
-
-  // function to set the model based on bool - isTextOnly
-  Future<void> setModel({required bool isTextOnly}) async {
-    if (isTextOnly) {
-      _model =
-          _textModel ??
-          GenerativeModel(
-            model: setCurrentModel(newModel: 'gemini-2.0-flash-exp'),
-            apiKey: ApiService.apiKey,
-          );
-    } else {
-      _model =
-          _visionModel ??
-          GenerativeModel(
-            model: setCurrentModel(newModel: 'gemini-1.5-pro'),
-            apiKey: ApiService.apiKey,
-          );
+  // Make setCurrentIndex private
+  void _setCurrentIndex({required int newIndex}) {
+    if (!_navigationLocked && newIndex >= 0 && newIndex < 2) {
+      _currentIndex = newIndex;
+      log('Navigating to index: $newIndex');
+      if (_pageController.hasClients) {
+        _pageController.jumpToPage(newIndex);
+      }
+      notifyListeners();
     }
-    notifyListeners();
   }
 
-  // set current page index
-  void setCurrentIndex({required int newIndex}) {
-    _currentIndex = newIndex;
-    notifyListeners();
+  // Add specific navigation methods
+  void navigateToChat() {
+    log('Navigating to Chat Screen');
+    _setCurrentIndex(newIndex: 0);
+  }
+
+  void navigateToProfile() {
+    log('Navigating to Profile Screen');
+    _setCurrentIndex(newIndex: 1);
   }
 
   // set current chat id
@@ -162,7 +137,7 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // delete caht
+  // delete chat
   Future<void> deleteChatMessages({required String chatId}) async {
     // 1. check if the box is open
     if (!Hive.isBoxOpen('${Constants.chatMessagesBox}$chatId')) {
@@ -182,9 +157,7 @@ class ChatProvider extends ChangeNotifier {
       await Hive.box('${Constants.chatMessagesBox}$chatId').close();
     }
 
-    // get the current chatId, its its not empty
-    // we check if its the same as the chatId
-    // if its the same we set it to empty
+    // get the current chatId, if it's not empty
     if (currentChatId.isNotEmpty) {
       if (currentChatId == chatId) {
         setCurrentChatId(newChatId: '');
@@ -197,45 +170,45 @@ class ChatProvider extends ChangeNotifier {
   // prepare chat room
   Future<void> prepareChatRoom({
     required bool isNewChat,
-    required String chatID,
+    String? chatID,
   }) async {
-    if (!isNewChat) {
-      // 1.  load the chat messages from the db
-      final chatHistory = await loadMessagesFromDB(chatId: chatID);
+    if (isNewChat) {
+      // Generate a new chatId
+      String newChatId = getChatId(isNewChat: true);
+      print('Generated new chatId: $newChatId'); // Debug log
 
-      // 2. clear the inChatMessages
+      // Clear existing messages and set new chatId
       _inChatMessages.clear();
-
+      setCurrentChatId(newChatId: newChatId);
+    } else {
+      if (chatID == null) {
+        print('prepareChatRoom called with isNewChat=false but chatID is null');
+        return;
+      }
+      // Load chat history
+      final chatHistory = await loadMessagesFromDB(chatId: chatID);
+      _inChatMessages.clear();
       for (var message in chatHistory) {
         _inChatMessages.add(message);
       }
-
-      // 3. set the current chat id
-      setCurrentChatId(newChatId: chatID);
-    } else {
-      // 1. clear the inChatMessages
-      _inChatMessages.clear();
-
-      // 2. set the current chat id
       setCurrentChatId(newChatId: chatID);
     }
+    notifyListeners();
+    print('prepareChatRoom completed for isNewChat: $isNewChat'); // Debug log
   }
 
-  // send message to gemini and get the streamed reposnse
+  // send message to gemini and get the streamed response
   Future<void> sentMessage({
     required String message,
     required bool isTextOnly,
   }) async {
-    // set the model
-    await setModel(isTextOnly: isTextOnly);
-
     // set loading
     setLoading(value: true);
 
     // get the chatId
     String chatId = getChatId();
 
-    // list of history messahes
+    // list of history messages
     List<Content> history = [];
 
     // get the chat history
@@ -296,64 +269,42 @@ class ChatProvider extends ChangeNotifier {
     required String modelMessageId,
     required Box messagesBox,
   }) async {
-    // start the chat session - only send history is its text-only
-    final chatSession = _model!.startChat(
-      history: history.isEmpty || !isTextOnly ? null : history,
-    );
+    try {
+      // Use ApiService to send the message and get response
+      final response = await _apiService.sendMessage(
+        message: message,
+        history: history,
+        isTextOnly: isTextOnly,
+      );
 
-    // get content
-    final content = await getContent(message: message, isTextOnly: isTextOnly);
+      // Create assistant message with the response
+      final assistantMessage = userMessage.copyWith(
+        messageId: modelMessageId,
+        role: Role.assistant,
+        message: StringBuffer(response),
+        timeSent: DateTime.now(),
+        isRead: false,
+      );
 
-    // assistant message
-    final assistantMessage = userMessage.copyWith(
-      messageId: modelMessageId,
-      role: Role.assistant,
-      message: StringBuffer(),
-      timeSent: DateTime.now(),
-      isRead: false, // Initialize isRead
-    );
+      // Add assistant message to inChatMessages
+      _inChatMessages.add(assistantMessage);
+      notifyListeners();
 
-    // add this message to the list on inChatMessages
-    _inChatMessages.add(assistantMessage);
-    notifyListeners();
+      // Save messages to Hive DB
+      await saveMessagesToDB(
+        chatID: chatId,
+        userMessage: userMessage,
+        assistantMessage: assistantMessage,
+        messagesBox: messagesBox,
+      );
 
-    // wait for stream response
-    chatSession
-        .sendMessageStream(content)
-        .asyncMap((event) {
-          return event;
-        })
-        .listen(
-          (event) {
-            _inChatMessages
-                .firstWhere(
-                  (element) =>
-                      element.messageId == assistantMessage.messageId &&
-                      element.role.name == Role.assistant.name,
-                )
-                .message
-                .write(event.text);
-            log('event: ${event.text}');
-            notifyListeners();
-          },
-          onDone: () async {
-            log('stream done');
-            // save message to hive db
-            await saveMessagesToDB(
-              chatID: chatId,
-              userMessage: userMessage,
-              assistantMessage: assistantMessage,
-              messagesBox: messagesBox,
-            );
-            // set loading to false
-            setLoading(value: false);
-          },
-        )
-        .onError((erro, stackTrace) {
-          log('error: $erro');
-          // set loading
-          setLoading(value: false);
-        });
+      // Set loading to false
+      setLoading(value: false);
+    } catch (error) {
+      log('ApiService error: $error');
+      // Handle error, set loading to false
+      setLoading(value: false);
+    }
   }
 
   // save messages to hive db
@@ -369,9 +320,7 @@ class ChatProvider extends ChangeNotifier {
     // save the assistant messages
     await messagesBox.add(assistantMessage.toMap());
 
-    // save chat history with thae same chatId
-    // if its already there update it
-    // if not create a new one
+    // save chat history with the same chatId
     final chatHistoryBox = Boxes.getChatHistory();
 
     final chatHistory = ChatHistory(
@@ -385,30 +334,6 @@ class ChatProvider extends ChangeNotifier {
 
     // close the box
     await messagesBox.close();
-  }
-
-  Future<Content> getContent({
-    required String message,
-    required bool isTextOnly,
-  }) async {
-    if (isTextOnly) {
-      // generate text from text-only input
-      return Content.text(message);
-    } else {
-      // generate image from text and image input
-      final imageFutures = _imagesFileList
-          ?.map((imageFile) => imageFile.readAsBytes())
-          .toList(growable: false);
-
-      final imageBytes = await Future.wait(imageFutures!);
-      final prompt = TextPart(message);
-      final imageParts =
-          imageBytes
-              .map((bytes) => DataPart('image/jpeg', Uint8List.fromList(bytes)))
-              .toList();
-
-      return Content.multi([prompt, ...imageParts]);
-    }
   }
 
   // get the imagesUrls
@@ -439,8 +364,8 @@ class ChatProvider extends ChangeNotifier {
     return history;
   }
 
-  String getChatId() {
-    if (currentChatId.isEmpty) {
+  String getChatId({bool isNewChat = false}) {
+    if (isNewChat || currentChatId.isEmpty) {
       return const Uuid().v4();
     } else {
       return currentChatId;
@@ -496,5 +421,41 @@ class ChatProvider extends ChangeNotifier {
       timeSent: message.timeSent,
     );
     notifyListeners();
+  }
+
+  void resetPageController() {
+    _pageController = PageController(initialPage: 0);
+    notifyListeners();
+  }
+
+  void clearMessages() {
+    _inChatMessages.clear();
+    notifyListeners();
+  }
+
+  Future<void> loadAndShowChat({required String chatId}) async {
+    // Make sure we're on chat screen
+    _currentIndex = 0;
+    notifyListeners();
+
+    // Load the chat
+    await prepareChatRoom(isNewChat: false, chatID: chatId);
+
+    // Force UI update
+    notifyListeners();
+  }
+
+  // Lock navigation to prevent unintended page changes
+  void lockNavigation() {
+    _navigationLocked = true;
+    notifyListeners();
+    // Removed invalid log statement
+  }
+
+  // Force navigation to Chat Screen
+  void forceToChat() {
+    _navigationLocked = true;
+    navigateToChat();
+    _navigationLocked = false;
   }
 }

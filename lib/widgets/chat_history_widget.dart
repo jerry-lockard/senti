@@ -56,8 +56,7 @@ class ChatHistoryWidget extends StatelessWidget {
             isNewChat: false,
             chatID: chat.chatId,
           );
-          chatProvider.setCurrentIndex(newIndex: 1);
-          chatProvider.pageController.jumpToPage(1);
+          chatProvider.navigateToChat();
         },
         onLongPress: () {
           // show my animated dialog to delete the chat

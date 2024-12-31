@@ -1,80 +1,41 @@
 import 'package:flutter/material.dart';
+import 'package:hive/hive.dart';
 import 'package:senti/hive/boxes.dart';
 import 'package:senti/hive/settings.dart';
 
 class SettingsProvider extends ChangeNotifier {
-  bool _isDarkMode = false;
-  bool _shouldSpeak = false;
+  final Box<Settings> settingsBox = Boxes.getSettings();
 
-  bool get isDarkMode => _isDarkMode;
+  Settings? _settings;
 
-  bool get shouldSpeak => _shouldSpeak;
+  Settings? get settings => _settings;
 
-  // get the saved settings from box
-  void getSavedSettings() {
-    final settingsBox = Boxes.getSettings();
+  SettingsProvider() {
+    _settings = settingsBox.isNotEmpty ? settingsBox.getAt(0) : null;
+  }
 
-    // check is the settings box is open
-    if (settingsBox.isNotEmpty) {
-      // get the settings
-      final settings = settingsBox.getAt(0);
-      _isDarkMode = settings!.isDarkTheme;
-      _shouldSpeak = settings.shouldSpeak;
+  void toggleSpeak({required bool value}) {
+    if (_settings != null) {
+      _settings!.shouldSpeak = value;
+      _settings!.save();
+      notifyListeners();
     }
   }
 
-  // toggle the dark mode
-  void toggleDarkMode({required bool value, Settings? settings}) {
-    if (settings != null) {
-      settings.isDarkTheme = value;
-      settings.save();
-    } else {
-      // get the settings box
-      final settingsBox = Boxes.getSettings();
-      // save the settings
-      settingsBox.put(
-        0,
-        Settings(isDarkTheme: value, shouldSpeak: shouldSpeak),
-      );
+  void toggleNotifications({required bool value}) {
+    if (_settings != null) {
+      _settings!.notificationsEnabled = value;
+      _settings!.save();
+      notifyListeners();
     }
-
-    _isDarkMode = value;
-    notifyListeners();
   }
 
-  // toggle the speak
-  void toggleSpeak({required bool value, Settings? settings}) {
-    if (settings != null) {
-      settings.shouldSpeak = value;
-      settings.save();
-    } else {
-      // get the settings box
-      final settingsBox = Boxes.getSettings();
-      // save the settings
-      settingsBox.put(0, Settings(isDarkTheme: isDarkMode, shouldSpeak: value));
+  void toggleDarkMode({required bool value}) {
+    if (_settings != null) {
+      _settings!.isDarkTheme = value;
+      _settings!.save();
+      notifyListeners();
+      print('Dark mode toggled to: $value'); // Debug log
     }
-
-    _shouldSpeak = value;
-    notifyListeners();
-  }
-
-  // toggle the notifications
-  void toggleNotifications({required bool value, Settings? settings}) {
-    if (settings != null) {
-      settings.notificationsEnabled = value;
-      settings.save();
-    } else {
-      final settingsBox = Boxes.getSettings();
-      settingsBox.put(
-        0,
-        Settings(
-          isDarkTheme: _isDarkMode,
-          shouldSpeak: _shouldSpeak,
-          notificationsEnabled: value,
-        ),
-      );
-    }
-
-    notifyListeners();
   }
 }
