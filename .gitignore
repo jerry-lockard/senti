@@ -52,3 +52,4 @@ lib/firebase_options.dart
 /senti-venv
 /.fvm/
 /.vscode/
+/docs/web/assets/.env
