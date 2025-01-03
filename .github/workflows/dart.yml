@@ -37,4 +37,4 @@ jobs:
           branch: senti-ai
           folder: build/web
           clean: true
-          commit_message: "Deploying Flutter web app"
+          commit-message: "Deploying Flutter web app"
