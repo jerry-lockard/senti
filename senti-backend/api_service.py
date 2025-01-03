@@ -46,13 +46,13 @@ class ApiService:
     def __init__(self):
         self.gemini_api_key = os.getenv('GEMINI_API_KEY')
         self.openai_api_key = os.getenv('OPENAI_API_KEY')
-        self.ollama_endpoint = os.getenv('OLLAMA_ENDPOINT', 'http://0.0.0.0:11434/api/chat')
-        self.llama_endpoint = os.getenv('LLAMA_ENDPOINT', 'http://0.0.0.0:8000/v1/chat/completions')
+        self.ollama_endpoint = os.getenv('OLLAMA_ENDPOINT', 'http://localhost:11434/api/chat')
+        self.llama_endpoint = os.getenv('LLAMA_ENDPOINT', 'http://localhost:8000/v1/chat/completions')
         
-        self.websocket_url_android = os.getenv('WEBSOCKET_URL_ANDROID', 'ws://192.168.86.13:8765/ai')
-        self.websocket_url_ios = os.getenv('WEBSOCKET_URL_IOS', 'ws://192.168.86.13:8765/ai')
-        self.websocket_url_web = os.getenv('WEBSOCKET_URL_WEB', 'ws://192.168.86.13:8765/ai')
-        self.websocket_url_default = os.getenv('WEBSOCKET_URL_DEFAULT', 'ws://192.168.86.13:8765/ai')
+        self.websocket_url_android = os.getenv('WEBSOCKET_URL_ANDROID')
+        self.websocket_url_ios = os.getenv('WEBSOCKET_URL_IOS')
+        self.websocket_url_web = os.getenv('WEBSOCKET_URL_WEB')
+        self.websocket_url_default = os.getenv('WEBSOCKET_URL_DEFAULT')
 
         # API Client Setup
         genai.configure(api_key=self.gemini_api_key)
@@ -106,10 +106,10 @@ api_service = ApiService()
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://0.0.0.0:8765",
-        "http://10.0.2.2:8765",
-        "capacitor://localhost",
-        "ionic://localhost",
+        os.getenv('CORS_ORIGIN_1', 'http://0.0.0.0:8765'),
+        os.getenv('CORS_ORIGIN_2', 'http://10.0.2.2:8765'),
+        os.getenv('CORS_ORIGIN_3', 'capacitor://localhost'),
+        os.getenv('CORS_ORIGIN_4', 'ionic://localhost'),
         "*"
     ],
     allow_credentials=True,

@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
 import 'dart:convert';
-
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:flutter/material.dart';
 import 'package:senti/apis/api_service.dart';
 import 'package:senti/constants/constants.dart';
@@ -12,6 +12,7 @@ import 'package:senti/hive/user_model.dart';
 import 'package:senti/models/message.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart' as path;
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:uuid/uuid.dart';
@@ -54,13 +55,25 @@ class ChatProvider extends ChangeNotifier {
   bool get isLoading => _isLoading;
 
   ChatProvider() {
+    _initialize();
+  }
+
+  Future<void> _initialize() async {
+    await dotenv.load();
     initializeWebSocket();
   }
 
   // WebSocket initialization method
   void initializeWebSocket() {
     try {
-      _webSocketChannel = IOWebSocketChannel.connect('ws://192.168.86.13:8765');
+      final wsUrl =
+          dotenv
+              .env['WEBSOCKET_URL_${defaultTargetPlatform.name.toUpperCase()}'] ??
+          dotenv.env['WEBSOCKET_URL_WEB'] ??
+          dotenv.env['WEBSOCKET_URL_IOS'] ??
+          dotenv.env['WEBSOCKET_URL_ANDROID'] ??
+          dotenv.env['WEBSOCKET_URL_DEFAULT'];
+      _webSocketChannel = IOWebSocketChannel.connect(wsUrl!);
       _connectionStatus = 'connecting';
       _listenToWebSocket();
     } catch (e) {

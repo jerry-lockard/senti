@@ -31,7 +31,7 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://0.0.0.0:8765",  # Local development
+        "http://localhost:8765",  # Local development
         "http://10.0.2.2:8765",   # Android emulator
         "capacitor://localhost",  # Capacitor iOS/Android
         "ionic://localhost",      # Ionic framework

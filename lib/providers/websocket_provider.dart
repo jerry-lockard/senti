@@ -13,10 +13,9 @@ class WebSocketProvider with ChangeNotifier {
   bool _isConnecting = false;
   int _reconnectAttempts = 0;
   static const int maxReconnectAttempts = 5;
-  static const int maxReconnectDelay =
-      30; // Max delay for reconnect attempts (seconds)
+  static const int maxReconnectDelay = 30;
 
-  // Getters
+  // Getters remain the same
   WebSocketChannel? get channel => _channel;
   List<Map<String, dynamic>> get messages => _messages;
   String get connectionStatus => _connectionStatus;
@@ -27,13 +26,13 @@ class WebSocketProvider with ChangeNotifier {
     _initializeWebSocket();
   }
 
-  // Initialize WebSocket connection
   void _initializeWebSocket() {
     if (_isConnecting) return;
     _isConnecting = true;
 
     try {
-      final wsUrl = dotenv.env['WEBSOCKET_URL'] ?? 'ws://192.168.86.13:8765';
+      // Use environment variable with a fallback value
+      final wsUrl = dotenv.env['WEBSOCKET_URL'] ?? 'ws://localhost:8765';
       print('Attempting to connect to WebSocket at: $wsUrl');
 
       _channel = IOWebSocketChannel.connect(

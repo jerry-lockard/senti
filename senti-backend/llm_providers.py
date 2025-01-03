@@ -119,7 +119,7 @@ class OpenAIProvider(BaseLLMProvider):
 class OllamaProvider(BaseLLMProvider):
     def __init__(self):
         # Ollama endpoint configuration
-        self.endpoint = os.getenv('OLLAMA_ENDPOINT', 'http://0.0.0.0.:11434/api/chat')
+        self.endpoint = os.getenv('OLLAMA_ENDPOINT', 'http://localhost:11434/api/chat')
         self.model = os.getenv('OLLAMA_MODEL', 'llama2')
 
     async def generate_response(
@@ -172,7 +172,7 @@ class OllamaProvider(BaseLLMProvider):
 class LlamaProvider(BaseLLMProvider):
     def __init__(self):
         # Llama endpoint configuration
-        self.endpoint = os.getenv('LLAMA_ENDPOINT', 'http://0.0.0.0:8000/v1/chat/completions')
+        self.endpoint = os.getenv('LLAMA_ENDPOINT', 'http://localhost:8000/v1/chat/completions')
         self.model = os.getenv('LLAMA_MODEL', 'llama-2-7b-chat')
 
     async def generate_response(

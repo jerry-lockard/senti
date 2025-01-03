@@ -5,6 +5,7 @@ import 'dart:developer' as dev;
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_channel/io.dart' as io;
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 
 class ApiService {
   WebSocketChannel? _channel;
@@ -15,10 +16,15 @@ class ApiService {
   int _reconnectAttempts = 0;
   static const int maxReconnectAttempts = 3;
 
-  final websocketUrlAndroid = 'ws://192.168.86.13:8765';
-  final websocketUrlIOS = 'ws://192.168.86.13:8765';
-  final websocketUrlWeb = 'ws://192.168.86.13:8765';
-  final websocketUrlDefault = 'ws://192.168.86.13:8765';
+  // Replace hardcoded URLs with environment variables
+  String get websocketUrlAndroid =>
+      dotenv.env['WEBSOCKET_URL_ANDROID'] ?? 'ws://localhost:8765';
+  String get websocketUrlIOS =>
+      dotenv.env['WEBSOCKET_URL_IOS'] ?? 'ws://localhost:8765';
+  String get websocketUrlWeb =>
+      dotenv.env['WEBSOCKET_URL_WEB'] ?? 'ws://localhost:8765';
+  String get websocketUrlDefault =>
+      dotenv.env['WEBSOCKET_URL_DEFAULT'] ?? 'ws://localhost:8765';
 
   ApiService() {
     dev.log('Initializing ApiService');
