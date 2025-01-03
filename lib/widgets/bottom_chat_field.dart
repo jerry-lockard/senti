@@ -3,30 +3,31 @@ import 'dart:developer';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:senti/providers/chat_provider.dart';
+import 'package:senti/providers/sentiment_provider.dart'; // Added import
 import 'package:senti/utility/animated_dialog.dart';
 import 'package:senti/widgets/preview_images_widget.dart';
 import 'package:image_picker/image_picker.dart';
 
 class BottomChatField extends StatefulWidget {
-  const BottomChatField({super.key, required this.chatProvider});
+  const BottomChatField({
+    super.key,
+    required this.chatProvider,
+    this.onSendMessage, // Optional callback for WebSocket send
+  });
 
   final ChatProvider chatProvider;
+  final Function(String)? onSendMessage;
 
   @override
   State<BottomChatField> createState() => _BottomChatFieldState();
 }
 
 class _BottomChatFieldState extends State<BottomChatField> {
-  // controller for the input field
   final TextEditingController textController = TextEditingController();
-
-  // focus node for the input field
   final FocusNode textFieldFocus = FocusNode();
-
-  // initialize image picker
   final ImagePicker _picker = ImagePicker();
-
   Timer? _debounce;
 
   @override
@@ -43,6 +44,19 @@ class _BottomChatFieldState extends State<BottomChatField> {
     required bool isTextOnly,
   }) async {
     try {
+      // If WebSocket send message callback is provided, use it
+      if (widget.onSendMessage != null) {
+        widget.onSendMessage!(message);
+      }
+
+      // Perform sentiment analysis
+      final sentimentProvider = Provider.of<SentimentProvider>(
+        context,
+        listen: false,
+      );
+      sentimentProvider.analyzeSentiment(message);
+
+      // Existing chat provider message sending logic
       await chatProvider.sentMessage(message: message, isTextOnly: isTextOnly);
     } catch (e) {
       log('error : $e');
@@ -53,7 +67,6 @@ class _BottomChatFieldState extends State<BottomChatField> {
     }
   }
 
-  // pick an image
   void pickImage() async {
     try {
       final pickedImages = await _picker.pickMultiImage(
@@ -61,6 +74,7 @@ class _BottomChatFieldState extends State<BottomChatField> {
         maxWidth: 800,
         imageQuality: 95,
       );
+
       widget.chatProvider.setImagesFileList(listValue: pickedImages);
     } catch (e) {
       log('error : $e');
@@ -69,8 +83,27 @@ class _BottomChatFieldState extends State<BottomChatField> {
 
   void _onTextChanged(String text) {
     if (_debounce?.isActive ?? false) _debounce?.cancel();
+
     _debounce = Timer(const Duration(milliseconds: 300), () {
-      // Perform action after user stops typing for 300ms
+      // Perform text analysis or validation
+      if (text.isNotEmpty) {
+        // Example: Check message length
+        if (text.length > 500) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Message is too long. Maximum 500 characters.'),
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+
+        // Sentiment analysis integration
+        final sentimentProvider = Provider.of<SentimentProvider>(
+          context,
+          listen: false,
+        );
+        sentimentProvider.analyzeSentiment(text);
+      }
     });
   }
 
@@ -145,7 +178,6 @@ class _BottomChatFieldState extends State<BottomChatField> {
                           ? null
                           : (String value) {
                             if (value.isNotEmpty) {
-                              // send the message
                               sendChatMessage(
                                 message: textController.text,
                                 chatProvider: widget.chatProvider,
@@ -177,7 +209,6 @@ class _BottomChatFieldState extends State<BottomChatField> {
                         ? null
                         : () {
                           if (textController.text.isNotEmpty) {
-                            // send the message
                             sendChatMessage(
                               message: textController.text,
                               chatProvider: widget.chatProvider,

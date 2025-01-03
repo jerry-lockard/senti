@@ -25,13 +25,17 @@ class ChatHistoryAdapter extends TypeAdapter<ChatHistory> {
       messageStatus: fields[5] as String,
       hasMedia: fields[6] as bool,
       isFavorite: fields[7] as bool,
+      usedLLMProvider: fields[8] as String?,
+      overallConversationSentiment: fields[9] as String?,
+      sentimentPerMessage: (fields[10] as List?)?.cast<String>(),
+      llmModelConfig: (fields[11] as Map?)?.cast<String, dynamic>(),
     );
   }
 
   @override
   void write(BinaryWriter writer, ChatHistory obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(12)
       ..writeByte(0)
       ..write(obj.chatId)
       ..writeByte(1)
@@ -47,7 +51,15 @@ class ChatHistoryAdapter extends TypeAdapter<ChatHistory> {
       ..writeByte(6)
       ..write(obj.hasMedia)
       ..writeByte(7)
-      ..write(obj.isFavorite);
+      ..write(obj.isFavorite)
+      ..writeByte(8)
+      ..write(obj.usedLLMProvider)
+      ..writeByte(9)
+      ..write(obj.overallConversationSentiment)
+      ..writeByte(10)
+      ..write(obj.sentimentPerMessage)
+      ..writeByte(11)
+      ..write(obj.llmModelConfig);
   }
 
   @override

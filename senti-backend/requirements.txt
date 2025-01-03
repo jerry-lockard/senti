@@ -1,0 +1,7 @@
+fastapi
+uvicorn
+websockets
+google.generativeai
+openai
+aiohttp
+python-dotenv

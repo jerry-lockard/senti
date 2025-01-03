@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:developer';
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:senti/apis/api_service.dart';
 import 'package:senti/constants/constants.dart';
@@ -13,56 +15,184 @@ import 'package:path_provider/path_provider.dart' as path;
 import 'package:image_picker/image_picker.dart';
 import 'package:google_generative_ai/google_generative_ai.dart';
 import 'package:uuid/uuid.dart';
+import 'package:web_socket_channel/web_socket_channel.dart';
+import 'package:web_socket_channel/io.dart';
 
 class ChatProvider extends ChangeNotifier {
-  // Add new field and getter
+  // Existing properties
   bool _navigationLocked = false;
-  bool get navigationLocked => _navigationLocked;
-
-  // list of messages
   final List<Message> _inChatMessages = [];
-
-  // page controller - update initial page count to match new navigation
   PageController _pageController = PageController(initialPage: 0);
-
-  // images file list
   List<XFile>? _imagesFileList = [];
-
-  // index of the current screen
   int _currentIndex = 0;
-
-  // current chatId
   String _currentChatId = '';
-
-  // loading bool
   bool _isLoading = false;
-
-  // Re-add ApiService instance
   final ApiService _apiService = ApiService();
 
-  // getters
+  // New WebSocket and AI-related properties
+  WebSocketChannel? _webSocketChannel;
+  String _connectionStatus = 'disconnected';
+  String _selectedModel = 'gemini';
+  final List<String> _availableModels = ['gemini', 'openai', 'ollama', 'llama'];
+  String _lastSentiment = 'neutral';
+  bool _isTyping = false;
+
+  // Getters for new properties
+  String get connectionStatus => _connectionStatus;
+  String get selectedModel => _selectedModel;
+  List<String> get availableModels => _availableModels;
+  String get lastSentiment => _lastSentiment;
+  bool get isTyping => _isTyping;
+
+  // Existing getters
+  bool get navigationLocked => _navigationLocked;
   List<Message> get inChatMessages => _inChatMessages;
-
   PageController get pageController => _pageController;
-
   List<XFile>? get imagesFileList => _imagesFileList;
-
   int get currentIndex => _currentIndex;
-
   String get currentChatId => _currentChatId;
-
   bool get isLoading => _isLoading;
 
+  ChatProvider() {
+    initializeWebSocket();
+  }
+
+  // WebSocket initialization method
+  void initializeWebSocket() {
+    try {
+      _webSocketChannel = IOWebSocketChannel.connect('ws://192.168.86.13:8765');
+      _connectionStatus = 'connecting';
+      _listenToWebSocket();
+    } catch (e) {
+      _connectionStatus = 'error';
+      log('WebSocket connection error: $e');
+    }
+  }
+
+  void _listenToWebSocket() {
+    _webSocketChannel?.stream.listen(
+      (message) {
+        final data = json.decode(message);
+        _handleWebSocketMessage(data);
+      },
+      onDone: () {
+        _connectionStatus = 'disconnected';
+        log('WebSocket connection closed');
+      },
+      onError: (error) {
+        _connectionStatus = 'error';
+        log('WebSocket error: $error');
+      },
+    );
+  }
+
+  void _handleWebSocketMessage(Map<String, dynamic> data) {
+    print('Handling WebSocket message: $data'); // Debug log
+
+    if (data['type'] == 'chat_response') {
+      print('Processing chat response'); // Debug log
+
+      final responseText = data['response'];
+      print('Response text: $responseText'); // Debug log
+
+      final assistantMessage = Message(
+        messageId: const Uuid().v4(),
+        chatId: _currentChatId,
+        role: Role.assistant,
+        message: StringBuffer(responseText),
+        timeSent: DateTime.now(),
+        isRead: false,
+        imagesUrls: [],
+      );
+
+      // Add to messages list and persist
+      _inChatMessages.add(assistantMessage);
+
+      // Save to Hive DB
+      Hive.openBox('${Constants.chatMessagesBox}$_currentChatId').then((box) {
+        box.add(assistantMessage.toMap());
+      });
+
+      setLoading(value: false);
+      notifyListeners();
+    } else if (data['type'] == 'error') {
+      print('Error from server: ${data['error']}');
+      setLoading(value: false);
+    } else {
+      switch (data['type']) {
+        case 'text_response':
+          final assistantMessage = Message(
+            messageId: const Uuid().v4(),
+            chatId: _currentChatId,
+            role: Role.assistant,
+            message: StringBuffer(data['text']),
+            timeSent: DateTime.now(),
+            isRead: false,
+            imagesUrls: [],
+          );
+          _inChatMessages.add(assistantMessage);
+          break;
+        case 'sentiment_analysis':
+          _lastSentiment = data['sentiment'];
+          break;
+        case 'model_changed':
+          _selectedModel = data['model'];
+          break;
+      }
+      notifyListeners();
+    }
+  }
+
+  // Model switching method
+  void changeModel(String model) {
+    if (_availableModels.contains(model)) {
+      _selectedModel = model;
+
+      _webSocketChannel?.sink.add(
+        json.encode({'type': 'change_model', 'model': model}),
+      );
+
+      notifyListeners();
+    }
+  }
+
+  // Sentiment analysis method
+  void analyzeSentiment(String text) {
+    String sentiment;
+    if (text.contains(RegExp(r'happy|good|great|awesome|love'))) {
+      sentiment = 'positive';
+    } else if (text.contains(RegExp(r'sad|bad|terrible|hate|angry'))) {
+      sentiment = 'negative';
+    } else {
+      sentiment = 'neutral';
+    }
+
+    _webSocketChannel?.sink.add(
+      json.encode({
+        'type': 'sentiment_analysis',
+        'text': text,
+        'sentiment': sentiment,
+      }),
+    );
+
+    _lastSentiment = sentiment;
+    notifyListeners();
+  }
+
+  // Typing status method
+  void setTypingStatus(bool status) {
+    _isTyping = status;
+    notifyListeners();
+  }
+
+  // Existing method: removeImageAt
   void removeImageAt(int index) {
     imagesFileList?.removeAt(index);
     notifyListeners();
   }
 
-  // setters
-
-  // set inChatMessages
+  // Existing method: setInChatMessages
   Future<void> setInChatMessages({required String chatId}) async {
-    // get messages from hive database
     final messagesFromDB = await loadMessagesFromDB(chatId: chatId);
 
     for (var message in messagesFromDB) {
@@ -76,9 +206,8 @@ class ChatProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  // load the messages from db
+  // Existing method: loadMessagesFromDB
   Future<List<Message>> loadMessagesFromDB({required String chatId}) async {
-    // open the box of this chatID
     await Hive.openBox('${Constants.chatMessagesBox}$chatId');
 
     final messageBox = Hive.box('${Constants.chatMessagesBox}$chatId');
@@ -92,72 +221,66 @@ class ChatProvider extends ChangeNotifier {
 
           return messageData;
         }).toList();
+
     notifyListeners();
     return newData;
   }
 
-  // set file list
+  // Existing method: setImagesFileList
   void setImagesFileList({required List<XFile> listValue}) {
     _imagesFileList = listValue;
     notifyListeners();
   }
 
-  // Make setCurrentIndex private
+  // Existing method: _setCurrentIndex
   void _setCurrentIndex({required int newIndex}) {
     if (!_navigationLocked && newIndex >= 0 && newIndex < 2) {
       _currentIndex = newIndex;
       log('Navigating to index: $newIndex');
+
       if (_pageController.hasClients) {
         _pageController.jumpToPage(newIndex);
       }
+
       notifyListeners();
     }
   }
 
-  // Add specific navigation methods
+  // Existing method: navigateToChat
   void navigateToChat() {
     log('Navigating to Chat Screen');
     _setCurrentIndex(newIndex: 0);
   }
 
+  // Existing method: navigateToProfile
   void navigateToProfile() {
     log('Navigating to Profile Screen');
     _setCurrentIndex(newIndex: 1);
   }
 
-  // set current chat id
+  // Existing method: setCurrentChatId
   void setCurrentChatId({required String newChatId}) {
     _currentChatId = newChatId;
     notifyListeners();
   }
 
-  // set loading
+  // Existing method: setLoading
   void setLoading({required bool value}) {
     _isLoading = value;
     notifyListeners();
   }
 
-  // delete chat
+  // Existing method: deleteChatMessages
   Future<void> deleteChatMessages({required String chatId}) async {
-    // 1. check if the box is open
     if (!Hive.isBoxOpen('${Constants.chatMessagesBox}$chatId')) {
-      // open the box
       await Hive.openBox('${Constants.chatMessagesBox}$chatId');
-
-      // delete all messages in the box
       await Hive.box('${Constants.chatMessagesBox}$chatId').clear();
-
-      // close the box
       await Hive.box('${Constants.chatMessagesBox}$chatId').close();
     } else {
-      // delete all messages in the box
       await Hive.box('${Constants.chatMessagesBox}$chatId').clear();
-
-      // close the box
       await Hive.box('${Constants.chatMessagesBox}$chatId').close();
     }
 
-    // get the current chatId, if it's not empty
     if (currentChatId.isNotEmpty) {
       if (currentChatId == chatId) {
         setCurrentChatId(newChatId: '');
@@ -167,17 +290,15 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
-  // prepare chat room
+  // Existing method: prepareChatRoom
   Future<void> prepareChatRoom({
     required bool isNewChat,
     String? chatID,
   }) async {
     if (isNewChat) {
-      // Generate a new chatId
       String newChatId = getChatId(isNewChat: true);
-      print('Generated new chatId: $newChatId'); // Debug log
+      print('Generated new chatId: $newChatId');
 
-      // Clear existing messages and set new chatId
       _inChatMessages.clear();
       setCurrentChatId(newChatId: newChatId);
     } else {
@@ -185,78 +306,76 @@ class ChatProvider extends ChangeNotifier {
         print('prepareChatRoom called with isNewChat=false but chatID is null');
         return;
       }
-      // Load chat history
+
       final chatHistory = await loadMessagesFromDB(chatId: chatID);
       _inChatMessages.clear();
+
       for (var message in chatHistory) {
         _inChatMessages.add(message);
       }
+
       setCurrentChatId(newChatId: chatID);
     }
+
     notifyListeners();
-    print('prepareChatRoom completed for isNewChat: $isNewChat'); // Debug log
+    print('prepareChatRoom completed for isNewChat: $isNewChat');
   }
 
-  // send message to gemini and get the streamed response
+  // Existing method: sentMessage (modified to include WebSocket)
+  late WebSocketChannel? channel;
+
   Future<void> sentMessage({
     required String message,
     required bool isTextOnly,
   }) async {
-    // set loading
-    setLoading(value: true);
+    try {
+      setLoading(value: true);
+      final chatId = getChatId();
+      print('Preparing to send message...');
 
-    // get the chatId
-    String chatId = getChatId();
+      // Create and add user message first
+      final userMessage = Message(
+        messageId: const Uuid().v4(),
+        chatId: chatId,
+        role: Role.user,
+        message: StringBuffer(message),
+        imagesUrls: getImagesUrls(isTextOnly: isTextOnly),
+        timeSent: DateTime.now(),
+        isRead: false,
+      );
 
-    // list of history messages
-    List<Content> history = [];
+      // Add to messages list and persist
+      _inChatMessages.add(userMessage);
+      notifyListeners();
 
-    // get the chat history
-    history = await getHistory(chatId: chatId);
+      // Save to Hive DB
+      final messagesBox = await Hive.openBox(
+        '${Constants.chatMessagesBox}$chatId',
+      );
+      await messagesBox.add(userMessage.toMap());
 
-    // get the imagesUrls
-    List<String> imagesUrls = getImagesUrls(isTextOnly: isTextOnly);
+      // Send via WebSocket
+      if (_webSocketChannel != null) {
+        final payload = {
+          'type': 'chat_message',
+          'message': message,
+          'model': _selectedModel,
+          'chatId': chatId,
+          'isTextOnly': isTextOnly,
+        };
 
-    // open the messages box
-    final messagesBox = await Hive.openBox(
-      '${Constants.chatMessagesBox}$chatId',
-    );
-
-    // get the last user message id
-    final userMessageId = messagesBox.keys.length;
-
-    // assistant messageId
-    final assistantMessageId = messagesBox.keys.length + 1;
-
-    // user message
-    final userMessage = Message(
-      messageId: userMessageId.toString(),
-      chatId: chatId,
-      role: Role.user,
-      message: StringBuffer(message),
-      imagesUrls: imagesUrls,
-      timeSent: DateTime.now(),
-      isRead: false, // Initialize isRead
-    );
-
-    // add this message to the list on inChatMessages
-    _inChatMessages.add(userMessage);
-    notifyListeners();
-
-    if (currentChatId.isEmpty) {
-      setCurrentChatId(newChatId: chatId);
+        print('Sending WebSocket payload: $payload');
+        _webSocketChannel!.sink.add(json.encode(payload));
+        print('Message sent successfully, awaiting response...');
+      } else {
+        print('WebSocket not connected, attempting reconnection...');
+        initializeWebSocket();
+        setLoading(value: false);
+      }
+    } catch (e) {
+      print('Error in sentMessage: $e');
+      setLoading(value: false);
     }
-
-    // send the message to the model and wait for the response
-    await sendMessageAndWaitForResponse(
-      message: message,
-      chatId: chatId,
-      isTextOnly: isTextOnly,
-      history: history,
-      userMessage: userMessage,
-      modelMessageId: assistantMessageId.toString(),
-      messagesBox: messagesBox,
-    );
   }
 
   // send message to the model and wait for the response
@@ -347,8 +466,10 @@ class ChatProvider extends ChangeNotifier {
     return imagesUrls;
   }
 
+  // Existing method: getHistory
   Future<List<Content>> getHistory({required String chatId}) async {
     List<Content> history = [];
+
     if (currentChatId.isNotEmpty) {
       await setInChatMessages(chatId: chatId);
 
@@ -364,6 +485,7 @@ class ChatProvider extends ChangeNotifier {
     return history;
   }
 
+  // Existing method: getChatId
   String getChatId({bool isNewChat = false}) {
     if (isNewChat || currentChatId.isEmpty) {
       return const Uuid().v4();
@@ -372,7 +494,7 @@ class ChatProvider extends ChangeNotifier {
     }
   }
 
-  // init Hive box
+  // Existing static method: initHive
   static Future<void> initHive() async {
     final dir = await path.getApplicationDocumentsDirectory();
     Hive.init(dir.path);
@@ -457,5 +579,11 @@ class ChatProvider extends ChangeNotifier {
     _navigationLocked = true;
     navigateToChat();
     _navigationLocked = false;
+  }
+
+  @override
+  void dispose() {
+    _webSocketChannel?.sink.close();
+    super.dispose();
   }
 }

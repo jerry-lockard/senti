@@ -22,13 +22,34 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
-    // Initialize listener here instead of in build
+
     final chatProvider = context.read<ChatProvider>();
     chatProvider.addListener(_scrollListener);
+
+    // Optional: Initial WebSocket connection check
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (chatProvider.connectionStatus != 'connected') {
+        chatProvider.initializeWebSocket();
+      }
+    });
   }
 
   void _scrollListener() {
-    // Implement your scroll logic here
+    final chatProvider = context.read<ChatProvider>();
+
+    // Example: Check connection status
+    if (chatProvider.connectionStatus == 'error') {
+      // Handle WebSocket connection error
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('WebSocket connection error')));
+    }
+
+    // Example: Track typing status
+    if (chatProvider.isTyping) {
+      // Potential UI indication of typing
+      print('User is typing');
+    }
   }
 
   @override

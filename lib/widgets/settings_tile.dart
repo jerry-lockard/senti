@@ -14,6 +14,9 @@ class SettingsTile extends StatelessWidget {
     this.trailing,
     this.leadingImage,
     this.showDivider = false,
+    this.onTap,
+    this.trailingWidget,
+    this.subtitleWidget,
   });
 
   final IconData icon;
@@ -27,31 +30,29 @@ class SettingsTile extends StatelessWidget {
   final Widget? trailing;
   final String? leadingImage;
   final bool showDivider;
+  final VoidCallback? onTap;
+  final Widget? trailingWidget;
+  final Widget? subtitleWidget;
 
   @override
   Widget build(BuildContext context) {
     return Column(
       children: [
         Card(
-          color: Theme.of(context).colorScheme.surface, // Updated card color
+          color: Theme.of(context).colorScheme.surface,
           child: ListTile(
+            onTap: onTap,
             leading:
                 leadingImage != null
                     ? Image.asset(
                       leadingImage!,
                       width: 40,
                       height: 40,
-                      color:
-                          Theme.of(
-                            context,
-                          ).colorScheme.primary, // Updated image color
+                      color: Theme.of(context).colorScheme.primary,
                     )
                     : Container(
                       decoration: BoxDecoration(
-                        color:
-                            Theme.of(
-                              context,
-                            ).colorScheme.primary, // Updated container color
+                        color: Theme.of(context).colorScheme.primary,
                         borderRadius: BorderRadius.circular(10.0),
                       ),
                       child: Padding(
@@ -61,36 +62,27 @@ class SettingsTile extends StatelessWidget {
                     ),
             title: Text(
               title,
-              style: TextStyle(
-                color:
-                    Theme.of(
-                      context,
-                    ).colorScheme.onSurface, // Updated text color
-              ),
+              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
             ),
             subtitle:
-                subtitle != null
+                subtitleWidget ??
+                (subtitle != null
                     ? Text(
                       subtitle!,
                       style: TextStyle(
-                        color:
-                            Theme.of(context)
-                                .colorScheme
-                                .onSurfaceVariant, // Updated subtitle color
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     )
-                    : null,
+                    : null),
             trailing:
-                trailing ??
-                Switch(
-                  value: value,
-                  onChanged: onChanged,
-                  activeColor:
-                      switchColor ??
-                      Theme.of(
-                        context,
-                      ).colorScheme.primary, // Updated switch color
-                ),
+                trailingWidget ??
+                (trailing ??
+                    Switch(
+                      value: value,
+                      onChanged: onChanged,
+                      activeColor:
+                          switchColor ?? Theme.of(context).colorScheme.primary,
+                    )),
           ),
         ),
         if (description != null)
@@ -99,20 +91,12 @@ class SettingsTile extends StatelessWidget {
             child: Text(
               description!,
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color:
-                    Theme.of(
-                      context,
-                    ).colorScheme.onSurfaceVariant, // Updated description color
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),
             ),
           ),
         if (showDivider)
-          Divider(
-            color:
-                Theme.of(
-                  context,
-                ).colorScheme.onSurfaceVariant, // Updated divider color
-          ),
+          Divider(color: Theme.of(context).colorScheme.onSurfaceVariant),
       ],
     );
   }

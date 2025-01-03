@@ -28,7 +28,20 @@ class ChatHistory extends HiveObject {
   @HiveField(7)
   bool isFavorite; // Added field
 
-  // constructor
+  // New LLM and Sentiment-related fields
+  @HiveField(8)
+  String? usedLLMProvider; // LLM provider used for this chat
+
+  @HiveField(9)
+  String? overallConversationSentiment; // Overall sentiment of the conversation
+
+  @HiveField(10)
+  List<String>? sentimentPerMessage; // Sentiment for each message
+
+  @HiveField(11)
+  Map<String, dynamic>? llmModelConfig; // Specific LLM configuration used
+
+  // Constructor
   ChatHistory({
     required this.chatId,
     required this.prompt,
@@ -36,8 +49,12 @@ class ChatHistory extends HiveObject {
     required this.imagesUrls,
     required this.timestamp,
     this.messageStatus = 'sent',
-    this.hasMedia = false, // Default value
-    this.isFavorite = false, // Default value
+    this.hasMedia = false,
+    this.isFavorite = false,
+    this.usedLLMProvider,
+    this.overallConversationSentiment,
+    this.sentimentPerMessage,
+    this.llmModelConfig,
   });
 
   // toMap
@@ -50,6 +67,10 @@ class ChatHistory extends HiveObject {
       'timestamp': timestamp.toIso8601String(),
       'hasMedia': hasMedia,
       'isFavorite': isFavorite,
+      'usedLLMProvider': usedLLMProvider,
+      'overallConversationSentiment': overallConversationSentiment,
+      'sentimentPerMessage': sentimentPerMessage,
+      'llmModelConfig': llmModelConfig,
     };
   }
 
@@ -61,8 +82,15 @@ class ChatHistory extends HiveObject {
       response: map['response'],
       imagesUrls: List<String>.from(map['imagesUrls']),
       timestamp: DateTime.parse(map['timestamp']),
-      hasMedia: map['hasMedia'] ?? false, // Handle JSON
-      isFavorite: map['isFavorite'] ?? false, // Handle JSON
+      hasMedia: map['hasMedia'] ?? false,
+      isFavorite: map['isFavorite'] ?? false,
+      usedLLMProvider: map['usedLLMProvider'],
+      overallConversationSentiment: map['overallConversationSentiment'],
+      sentimentPerMessage:
+          map['sentimentPerMessage'] != null
+              ? List<String>.from(map['sentimentPerMessage'])
+              : null,
+      llmModelConfig: map['llmModelConfig'],
     );
   }
 
@@ -76,6 +104,10 @@ class ChatHistory extends HiveObject {
     String? messageStatus,
     bool? hasMedia,
     bool? isFavorite,
+    String? usedLLMProvider,
+    String? overallConversationSentiment,
+    List<String>? sentimentPerMessage,
+    Map<String, dynamic>? llmModelConfig,
   }) {
     return ChatHistory(
       chatId: chatId ?? this.chatId,
@@ -86,13 +118,17 @@ class ChatHistory extends HiveObject {
       messageStatus: messageStatus ?? this.messageStatus,
       hasMedia: hasMedia ?? this.hasMedia,
       isFavorite: isFavorite ?? this.isFavorite,
+      usedLLMProvider: usedLLMProvider ?? this.usedLLMProvider,
+      overallConversationSentiment:
+          overallConversationSentiment ?? this.overallConversationSentiment,
+      sentimentPerMessage: sentimentPerMessage ?? this.sentimentPerMessage,
+      llmModelConfig: llmModelConfig ?? this.llmModelConfig,
     );
   }
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
-
     return other is ChatHistory && other.chatId == chatId;
   }
 

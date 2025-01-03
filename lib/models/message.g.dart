@@ -24,13 +24,14 @@ class MessageAdapter extends TypeAdapter<Message> {
       imagesUrls: (fields[4] as List).cast<String>(),
       timeSent: fields[5] as DateTime,
       isRead: fields[6] as bool,
+      sentiment: fields[7] as String?,
     );
   }
 
   @override
   void write(BinaryWriter writer, Message obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.messageId)
       ..writeByte(1)
@@ -44,7 +45,9 @@ class MessageAdapter extends TypeAdapter<Message> {
       ..writeByte(5)
       ..write(obj.timeSent)
       ..writeByte(6)
-      ..write(obj.isRead);
+      ..write(obj.isRead)
+      ..writeByte(7)
+      ..write(obj.sentiment);
   }
 
   @override

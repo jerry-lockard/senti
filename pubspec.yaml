@@ -1,5 +1,5 @@
 name: senti
-description: "A new Flutter project."
+description: "Senti-AI the only friend you actually need"
 publish_to: 'none'
 version: 0.1.0
 
@@ -17,11 +17,14 @@ dependencies:
   google_generative_ai: ^0.4.6
   hive: ^2.2.3
   hive_flutter: ^1.1.0
+  http: ^1.2.2
   image_picker: ^1.1.2
   intl: ^0.20.1
   path_provider: ^2.1.5
   provider: ^6.1.2
+  shared_preferences: ^2.3.5
   uuid: ^4.5.1
+  web_socket_channel: ^3.0.1
 
 dev_dependencies:
   flutter_test:

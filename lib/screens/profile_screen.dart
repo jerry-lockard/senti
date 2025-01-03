@@ -23,7 +23,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   String userName = 'Senti';
   final ImagePicker _picker = ImagePicker();
 
-  // Properly define the pickImage function
+  // Existing methods remain the same...
   Future<void> pickImage() async {
     try {
       final pickedImage = await _picker.pickImage(source: ImageSource.gallery);
@@ -37,13 +37,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
   }
 
-  // get user data
   void getUserData() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      // get user data from box
       final userBox = Boxes.getUser();
-
-      // check if user data is not empty
       if (userBox.isNotEmpty) {
         final user = userBox.getAt(0);
         setState(() {
@@ -60,7 +56,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.initState();
   }
 
-  // Change username
   void changeUsername() {
     showDialog(
       context: context,
@@ -90,7 +85,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
-  // Change password
   void changePassword() {
     showDialog(
       context: context,
@@ -117,16 +111,77 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  // New method to show LLM model configuration dialog
+  void _showLLMConfigDialog(Settings currentSettings) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        Map<String, dynamic> modelConfig =
+            currentSettings.llmModelSettings ?? {};
+
+        TextEditingController temperatureController = TextEditingController(
+          text: (modelConfig['temperature'] ?? 0.7).toString(),
+        );
+        TextEditingController maxTokensController = TextEditingController(
+          text: (modelConfig['max_tokens'] ?? 150).toString(),
+        );
+
+        return AlertDialog(
+          title: Text('LLM Model Configuration'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: temperatureController,
+                decoration: InputDecoration(
+                  labelText: 'Temperature',
+                  hintText: 'Creativity level (0.0 - 1.0)',
+                ),
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+              ),
+              TextField(
+                controller: maxTokensController,
+                decoration: InputDecoration(
+                  labelText: 'Max Tokens',
+                  hintText: 'Maximum response length',
+                ),
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                final settingsBox = Boxes.getSettings();
+                final newConfig = {
+                  'temperature':
+                      double.tryParse(temperatureController.text) ?? 0.7,
+                  'max_tokens': int.tryParse(maxTokensController.text) ?? 150,
+                };
+
+                settingsBox.putAt(
+                  0,
+                  currentSettings.updateLLMModelSettings(newConfig),
+                );
+                Navigator.pop(context);
+              },
+              child: Text('Save'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: CustomScrollView(
         slivers: [
-          // Custom App Bar with Profile Image
           SliverAppBar(
             expandedHeight: 200.0,
             floating: false,
-            pinned: false, // <- Changed from true to false
+            pinned: false,
             backgroundColor: Theme.of(context).colorScheme.primary,
             flexibleSpace: FlexibleSpaceBar(
               centerTitle: true,
@@ -204,6 +259,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     valueListenable: Boxes.getSettings().listenable(),
                     builder: (context, box, _) {
                       final settings = box.isEmpty ? null : box.getAt(0);
+
                       return Card(
                         elevation: 2,
                         margin: const EdgeInsets.only(bottom: 16),
@@ -237,7 +293,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                     context.read<SettingsProvider>();
                                 settingsProvider.toggleNotifications(
                                   value: value,
-                                ); // Corrected method
+                                );
                               },
                               iconColor: Theme.of(context).colorScheme.primary,
                             ),
@@ -251,6 +307,134 @@ class _ProfileScreenState extends State<ProfileScreen> {
                                 );
                               },
                               iconColor: Theme.of(context).colorScheme.primary,
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+
+                  // LLM and AI Settings Card
+                  ValueListenableBuilder<Box<Settings>>(
+                    valueListenable: Boxes.getSettings().listenable(),
+                    builder: (context, box, _) {
+                      final settings = box.isEmpty ? null : box.getAt(0);
+
+                      return Card(
+                        elevation: 2,
+                        margin: const EdgeInsets.only(bottom: 16),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Padding(
+                              padding: const EdgeInsets.all(16.0),
+                              child: Text(
+                                'AI and Language Model Settings',
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                            ),
+
+                            // LLM Provider Selection
+                            ListTile(
+                              leading: Icon(
+                                Icons.model_training,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              title: const Text('Language Model Provider'),
+                              trailing: DropdownButton<String>(
+                                value:
+                                    settings?.selectedLLMProvider ?? 'gemini',
+                                items:
+                                    settings?.availableLLMProviders.map((
+                                      String model,
+                                    ) {
+                                      return DropdownMenuItem<String>(
+                                        value: model,
+                                        child: Text(model),
+                                      );
+                                    }).toList() ??
+                                    [],
+                                onChanged: (String? newModel) {
+                                  if (newModel != null && settings != null) {
+                                    final settingsBox = Boxes.getSettings();
+                                    settingsBox.putAt(
+                                      0,
+                                      settings.updateLLMProvider(newModel),
+                                    );
+                                  }
+                                },
+                              ),
+                            ),
+
+                            // LLM Model Configuration
+                            ListTile(
+                              leading: Icon(
+                                Icons.settings,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              title: const Text('Model Configuration'),
+                              trailing: Icon(
+                                Icons.arrow_forward_ios,
+                                size: 16,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              onTap: () => _showLLMConfigDialog(settings!),
+                            ),
+
+                            // Sentiment Analysis Toggle
+                            SwitchListTile(
+                              title: const Text('Sentiment Analysis'),
+                              subtitle: const Text(
+                                'Enable emotional context detection',
+                              ),
+                              value: settings?.sentimentAnalysisEnabled ?? true,
+                              onChanged: (bool value) {
+                                if (settings != null) {
+                                  final settingsBox = Boxes.getSettings();
+                                  settingsBox.putAt(
+                                    0,
+                                    settings.toggleSentimentAnalysis(value),
+                                  );
+                                }
+                              },
+                              secondary: Icon(
+                                Icons.sentiment_satisfied_alt,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                            ),
+
+                            // Sentiment Language Selection
+                            ListTile(
+                              leading: Icon(
+                                Icons.language,
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
+                              title: const Text('Sentiment Analysis Language'),
+                              trailing: DropdownButton<String>(
+                                value:
+                                    settings?.preferredSentimentLanguage ??
+                                    'en',
+                                items:
+                                    ['en', 'es', 'fr', 'de', 'zh'].map((
+                                      String language,
+                                    ) {
+                                      return DropdownMenuItem<String>(
+                                        value: language,
+                                        child: Text(language.toUpperCase()),
+                                      );
+                                    }).toList(),
+                                onChanged: (String? newLanguage) {
+                                  if (newLanguage != null && settings != null) {
+                                    final settingsBox = Boxes.getSettings();
+                                    settingsBox.putAt(
+                                      0,
+                                      settings.copyWith(
+                                        preferredSentimentLanguage: newLanguage,
+                                      ),
+                                    );
+                                  }
+                                },
+                              ),
                             ),
                           ],
                         ),

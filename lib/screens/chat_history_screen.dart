@@ -17,6 +17,7 @@ class ChatHistoryScreen extends StatelessWidget {
       builder: (context, box, _) {
         final chatHistory =
             box.values.toList().cast<ChatHistory>().reversed.toList();
+
         return chatHistory.isEmpty
             ? const EmptyHistoryWidget()
             : ListView.builder(
@@ -25,6 +26,7 @@ class ChatHistoryScreen extends StatelessWidget {
               itemCount: chatHistory.length,
               itemBuilder: (context, index) {
                 final chat = chatHistory[index];
+
                 return Dismissible(
                   key: Key(chat.key.toString()),
                   direction: DismissDirection.endToStart,
@@ -49,16 +51,32 @@ class ChatHistoryScreen extends StatelessWidget {
                     margin: const EdgeInsets.symmetric(vertical: 4.0),
                     child: ListTile(
                       title: ChatHistoryWidget(chat: chat),
-                      trailing: IconButton(
-                        icon: Icon(
-                          chat.isFavorite ? Icons.star : Icons.star_border,
-                          color: chat.isFavorite ? Colors.amber : null,
-                        ),
-                        onPressed: () {
-                          chat.isFavorite = !chat.isFavorite;
-                          chat.save();
-                        },
+                      trailing: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          // Favorite icon
+                          IconButton(
+                            icon: Icon(
+                              chat.isFavorite ? Icons.star : Icons.star_border,
+                              color: chat.isFavorite ? Colors.amber : null,
+                            ),
+                            onPressed: () {
+                              chat.isFavorite = !chat.isFavorite;
+                              chat.save();
+                            },
+                          ),
+                          // LLM Provider and Sentiment Indicators
+                          if (chat.usedLLMProvider != null)
+                            Text(
+                              chat.usedLLMProvider!,
+                              style: TextStyle(
+                                fontSize: 10,
+                                color: Colors.grey,
+                              ),
+                            ),
+                        ],
                       ),
+                      subtitle: _buildSentimentIndicator(chat),
                       onTap: () async {
                         // Get provider without context
                         final chatProvider = context.read<ChatProvider>();
@@ -82,5 +100,54 @@ class ChatHistoryScreen extends StatelessWidget {
             );
       },
     );
+  }
+
+  // Helper method to build sentiment indicator
+  Widget? _buildSentimentIndicator(ChatHistory chat) {
+    if (chat.overallConversationSentiment == null) return null;
+
+    return Row(
+      children: [
+        Icon(
+          _getSentimentIcon(chat.overallConversationSentiment!),
+          color: _getSentimentColor(chat.overallConversationSentiment!),
+          size: 16,
+        ),
+        SizedBox(width: 4),
+        Text(
+          chat.overallConversationSentiment!,
+          style: TextStyle(
+            fontSize: 12,
+            color: _getSentimentColor(chat.overallConversationSentiment!),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // Helper method to get sentiment icon
+  IconData _getSentimentIcon(String sentiment) {
+    switch (sentiment.toLowerCase()) {
+      case 'positive':
+        return Icons.sentiment_very_satisfied;
+      case 'negative':
+        return Icons.sentiment_very_dissatisfied;
+      case 'neutral':
+      default:
+        return Icons.sentiment_neutral;
+    }
+  }
+
+  // Helper method to get sentiment color
+  Color _getSentimentColor(String sentiment) {
+    switch (sentiment.toLowerCase()) {
+      case 'positive':
+        return Colors.green;
+      case 'negative':
+        return Colors.red;
+      case 'neutral':
+      default:
+        return Colors.grey;
+    }
   }
 }

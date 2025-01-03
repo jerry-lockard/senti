@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:senti/providers/chat_provider.dart';
+import 'package:senti/providers/websocket_provider.dart';
 import 'package:senti/widgets/bottom_chat_field.dart';
 import 'package:senti/widgets/chat_messages.dart';
-import 'package:provider/provider.dart';
 import 'package:senti/screens/chat_history_screen.dart';
 
 class ChatScreen extends StatefulWidget {
@@ -13,22 +14,29 @@ class ChatScreen extends StatefulWidget {
 }
 
 class _ChatScreenState extends State<ChatScreen> {
-  // scroll controller
   final ScrollController _scrollController = ScrollController();
   late ChatProvider _chatProvider;
+  late WebSocketProvider _webSocketProvider;
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
-    // Obtain the ChatProvider reference without listening
     _chatProvider = Provider.of<ChatProvider>(context, listen: false);
+    _webSocketProvider = Provider.of<WebSocketProvider>(context, listen: false);
+    _webSocketProvider.addListener(_scrollListener);
     _chatProvider.addListener(_scrollListener);
   }
 
   @override
   void dispose() {
-    // Use the stored ChatProvider reference
-    _chatProvider.removeListener(_scrollListener);
+    _webSocketProvider.removeListener(_scrollListener);
+    if (_scrollController.hasClients) {
+      _scrollController.animateTo(
+        0,
+        duration: Duration.zero,
+        curve: Curves.linear,
+      );
+    }
     _scrollController.dispose();
     super.dispose();
   }
@@ -54,8 +62,8 @@ class _ChatScreenState extends State<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Consumer<ChatProvider>(
-      builder: (context, chatProvider, child) {
+    return Consumer2<ChatProvider, WebSocketProvider>(
+      builder: (context, chatProvider, webSocketProvider, child) {
         if (chatProvider.inChatMessages.isNotEmpty) {
           _scrollToBottom();
         }
@@ -66,6 +74,21 @@ class _ChatScreenState extends State<ChatScreen> {
             centerTitle: true,
             title: const Text('Chat with Senti'),
             actions: [
+              DropdownButton<String>(
+                value: webSocketProvider.selectedModel,
+                items:
+                    webSocketProvider.availableModels.map((model) {
+                      return DropdownMenuItem(
+                        value: model,
+                        child: Text(model.toUpperCase()),
+                      );
+                    }).toList(),
+                onChanged: (value) {
+                  if (value != null) {
+                    webSocketProvider.changeModel(value);
+                  }
+                },
+              ),
               IconButton(
                 icon: const Icon(Icons.history),
                 onPressed: () {
@@ -112,23 +135,20 @@ class _ChatScreenState extends State<ChatScreen> {
                   );
                 },
               ),
-              // Increased touch target size for the '+' button
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 8.0),
                 child: Container(
-                  // Added Container to enlarge touch area
-                  width: 48, // Increased width
-                  height: 48, // Increased height
+                  width: 48,
+                  height: 48,
                   child: IconButton(
                     icon: const Icon(Icons.add),
-                    iconSize: 30, // Increased icon size
-                    padding: EdgeInsets.zero, // Removed default padding
-                    constraints: const BoxConstraints(), // Removed constraints
+                    iconSize: 30,
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
                     onPressed: () async {
                       try {
                         await chatProvider.prepareChatRoom(isNewChat: true);
                         chatProvider.navigateToChat();
-                        // Optionally, reset any UI elements if needed
                       } catch (e) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
@@ -138,11 +158,6 @@ class _ChatScreenState extends State<ChatScreen> {
                       }
                     },
                   ),
-                  // Optional: Add a border for debugging touch area
-                  // decoration: BoxDecoration(
-                  //   border: Border.all(color: Colors.red),
-                  //   shape: BoxShape.circle,
-                  // ),
                 ),
               ),
             ],
@@ -161,8 +176,12 @@ class _ChatScreenState extends State<ChatScreen> {
                               chatProvider: chatProvider,
                             ),
                   ),
-
-                  BottomChatField(chatProvider: chatProvider),
+                  BottomChatField(
+                    chatProvider: chatProvider,
+                    onSendMessage: (message) {
+                      webSocketProvider.sendMessage(message);
+                    },
+                  ),
                 ],
               ),
             ),

@@ -21,31 +21,71 @@ class ChatMessages extends StatelessWidget {
       itemCount: chatProvider.inChatMessages.length,
       itemBuilder: (context, index) {
         final message = chatProvider.inChatMessages[index];
+
         return GestureDetector(
           onLongPress: () {
-            // Show a dialog or bottom sheet with reaction options
             showModalBottomSheet(
               context: context,
               builder: (context) {
                 return Wrap(
                   children: [
+                    // Sentiment Analysis Indicator
+                    ListTile(
+                      leading: Icon(
+                        _getSentimentIcon(chatProvider.lastSentiment),
+                        color: _getSentimentColor(chatProvider.lastSentiment),
+                      ),
+                      title: Text('Sentiment: ${chatProvider.lastSentiment}'),
+                    ),
+
+                    // Model Selection
+                    ListTile(
+                      leading: Icon(Icons.model_training),
+                      title: Text(
+                        'Current Model: ${chatProvider.selectedModel}',
+                      ),
+                      trailing: PopupMenuButton<String>(
+                        onSelected: (String model) {
+                          chatProvider.changeModel(model);
+                          Navigator.pop(context);
+                        },
+                        itemBuilder: (BuildContext context) {
+                          return chatProvider.availableModels.map((
+                            String model,
+                          ) {
+                            return PopupMenuItem<String>(
+                              value: model,
+                              child: Text(model),
+                            );
+                          }).toList();
+                        },
+                      ),
+                    ),
+
+                    // Existing Reaction Options
                     ListTile(
                       leading: Icon(Icons.thumb_up),
                       title: Text('Like'),
                       onTap: () {
-                        // Handle reaction
+                        // Analyze sentiment of the message
+                        chatProvider.analyzeSentiment(
+                          message.message.toString(),
+                        );
                         Navigator.pop(context);
                       },
                     ),
+
                     ListTile(
                       leading: Icon(Icons.thumb_down),
                       title: Text('Dislike'),
                       onTap: () {
-                        // Handle reaction
+                        // Analyze sentiment of the message
+                        chatProvider.analyzeSentiment(
+                          message.message.toString(),
+                        );
                         Navigator.pop(context);
                       },
                     ),
-                    // Add more reactions as needed
                   ],
                 );
               },
@@ -64,7 +104,7 @@ class ChatMessages extends StatelessWidget {
                 ),
                 padding: const EdgeInsets.all(8.0),
                 decoration: BoxDecoration(
-                  color: Colors.transparent, // Removed background color
+                  color: Colors.transparent,
                   borderRadius: BorderRadius.circular(10.0),
                 ),
                 child:
@@ -74,10 +114,45 @@ class ChatMessages extends StatelessWidget {
                           message: message.message.toString(),
                         ),
               ),
+              // Optional: Connection Status Indicator
+              if (chatProvider.connectionStatus != 'connected')
+                Text(
+                  'Connection Status: ${chatProvider.connectionStatus}',
+                  style: TextStyle(
+                    color:
+                        chatProvider.connectionStatus == 'error'
+                            ? Colors.red
+                            : Colors.orange,
+                    fontSize: 10,
+                  ),
+                ),
             ],
           ),
         );
       },
     );
+  }
+
+  // Helper methods for sentiment and icon display
+  IconData _getSentimentIcon(String sentiment) {
+    switch (sentiment) {
+      case 'positive':
+        return Icons.sentiment_very_satisfied;
+      case 'negative':
+        return Icons.sentiment_very_dissatisfied;
+      default:
+        return Icons.sentiment_neutral;
+    }
+  }
+
+  Color _getSentimentColor(String sentiment) {
+    switch (sentiment) {
+      case 'positive':
+        return Colors.green;
+      case 'negative':
+        return Colors.red;
+      default:
+        return Colors.grey;
+    }
   }
 }

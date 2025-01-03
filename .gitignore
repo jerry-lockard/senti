@@ -49,3 +49,4 @@ app.*.map.json
 lib/firebase_options.dart
 /.vscode/
 /devtools_options.yaml
+/senti-venv

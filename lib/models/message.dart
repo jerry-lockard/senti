@@ -25,7 +25,11 @@ class Message {
   @HiveField(6)
   bool isRead; // Added field
 
+  @HiveField(7)
+  String? sentiment; // Optional sentiment field
+
   // constructor
+  // Update constructor
   Message({
     required this.messageId,
     required this.chatId,
@@ -33,10 +37,11 @@ class Message {
     required this.message,
     required this.imagesUrls,
     required this.timeSent,
-    this.isRead = false, // Default value
+    this.isRead = false,
+    this.sentiment, // New optional parameter
   });
 
-  // toMap
+  // Update toMap method
   Map<String, dynamic> toMap() {
     return {
       'messageId': messageId,
@@ -46,10 +51,11 @@ class Message {
       'imagesUrls': imagesUrls,
       'timeSent': timeSent.toIso8601String(),
       'isRead': isRead,
+      'sentiment': sentiment, // Add sentiment
     };
   }
 
-  // from map
+  // Update fromMap method
   factory Message.fromMap(Map<String, dynamic> map) {
     return Message(
       messageId: map['messageId'],
@@ -58,11 +64,12 @@ class Message {
       message: StringBuffer(map['message']),
       imagesUrls: List<String>.from(map['imagesUrls']),
       timeSent: DateTime.parse(map['timeSent']),
-      isRead: map['isRead'] ?? false, // Handle JSON
+      isRead: map['isRead'] ?? false,
+      sentiment: map['sentiment'], // Add sentiment
     );
   }
 
-  // copyWith
+  // Update copyWith method
   Message copyWith({
     String? messageId,
     String? chatId,
@@ -71,6 +78,7 @@ class Message {
     List<String>? imagesUrls,
     DateTime? timeSent,
     bool? isRead,
+    String? sentiment, // Add sentiment
   }) {
     return Message(
       messageId: messageId ?? this.messageId,
@@ -80,6 +88,7 @@ class Message {
       imagesUrls: imagesUrls ?? this.imagesUrls,
       timeSent: timeSent ?? this.timeSent,
       isRead: isRead ?? this.isRead,
+      sentiment: sentiment ?? this.sentiment, // Add sentiment
     );
   }
 
@@ -96,4 +105,4 @@ class Message {
   }
 }
 
-enum Role { user, assistant, admin }
+enum Role { user, assistant, admin, system, ai, human }
