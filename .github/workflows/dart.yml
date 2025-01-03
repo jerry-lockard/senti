@@ -13,10 +13,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # Install Flutter (you can pin a specific version if desired)
+      # Install Flutter with a specific version that includes Dart SDK 3.7.0-209.1.beta
       - uses: subosito/flutter-action@v2
         with:
-          channel: stable
+          flutter-version: '3.7.0-209.1.beta'
+          channel: beta
 
       - name: Install dependencies
         run: flutter pub get
