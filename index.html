@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Senti - Your Emotional AI Companion | Coming Soon</title>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/tailwindcss/2.2.19/tailwind.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/ScrollTrigger.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.2/TextPlugin.min.js"></script>
+    <style>
+        @keyframes gradient {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        .gradient-bg {
+            background: linear-gradient(-45deg, #0f172a, #1e293b, #334155, #475569);
+            background-size: 400% 400%;
+            animation: gradient 15s ease infinite;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            transition: all 0.3s ease;
+        }
+
+        .feature-card:hover {
+            background: rgba(255, 255, 255, 0.05);
+            transform: translateY(-5px);
+        }
+
+        .glow {
+            text-shadow: 0 0 10px rgba(66, 153, 225, 0.5),
+                         0 0 20px rgba(66, 153, 225, 0.3),
+                         0 0 30px rgba(66, 153, 225, 0.2);
+        }
+
+        .clip-text {
+            background: linear-gradient(45deg, #60a5fa, #3b82f6, #2563eb);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            display: inline-block;
+        }
+
+        .hero-particle {
+            position: absolute;
+            background: white;
+            border-radius: 50%;
+            pointer-events: none;
+            opacity: 0;
+        }
+
+        .tech-line {
+            position: absolute;
+            background: linear-gradient(90deg, transparent, rgba(59, 130, 246, 0.5), transparent);
+            height: 1px;
+            width: 100%;
+            transform-origin: left;
+            opacity: 0;
+        }
+
+        .scroll-indicator {
+            animation: bounce 2s infinite;
+        }
+
+        @keyframes bounce {
+            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }
+            40% { transform: translateY(-10px); }
+            60% { transform: translateY(-5px); }
+        }
+
+        /* New styles for technology theme */
+        .technology-bg {
+            background-image: url('path/to/circuit-board-background.jpg');
+            background-size: cover;
+            background-repeat: no-repeat;
+            background-position: center;
+        }
+
+        .bright-colors {
+            color: #00FFEF; /* Example bright color */
+        }
+    </style>
+</head>
+<body class="gradient-bg min-h-screen font-sans text-white overflow-x-hidden technology-bg">
+    <!-- Initial Loading Animation Container -->
+    <div id="loadingContainer" class="fixed inset-0 flex items-center justify-center bg-black z-50">
+        <div id="loadingText" class="text-6xl font-bold opacity-0">Senti AI</div>
+    </div>
+
+    <!-- Main Content -->
+    <main class="opacity-0" id="mainContent">
+        <!-- Hero Section -->
+        <section class="min-h-screen relative flex items-center justify-center px-4">
+            <div class="text-center z-10">
+                <h1 class="text-7xl font-bold mb-6">
+                    <span class="clip-text">Senti AI</span>
+                </h1>
+                <p class="text-2xl mb-8 opacity-0" id="tagline">Your Emotional AI Companion</p>
+                <p class="text-xl opacity-0" id="subTagline">Combat loneliness with meaningful connections</p>
+                
+                <!-- Scroll Indicator -->
+                <div class="absolute bottom-10 left-1/2 transform -translate-x-1/2 scroll-indicator">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 14l-7 7m0 0l-7-7m7 7V3"></path>
+                    </svg>
+                </div>
+            </div>
+        </section>
+
+        <!-- Under Construction Section -->
+        <section class="py-20 px-4">
+            <div class="max-w-6xl mx-auto text-center">
+            <h2 class="text-4xl font-bold mb-8 text-yellow-400">Under Construction</h2>
+            <p class="text-xl mb-8 text-yellow-300">We're building something amazing! Stay tuned for updates.</p>
+            <!-- ...additional content... -->
+            </div>
+        </section>
+
+        <!-- Features Section -->
+        <section class="py-20 px-4">
+            <div class="max-w-6xl mx-auto">
+                <h2 class="text-4xl font-bold text-center mb-16 opacity-0" id="featuresTitle">
+                    Powered by Advanced AI
+                </h2>
+                
+                <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
+                    <div class="bg-gray-800 p-4 rounded-xl shadow-2xl">
+                        <div class="feature-card p-8 rounded-xl">
+                            <h3 class="text-xl font-bold mb-4">🧠 Emotional Intelligence</h3>
+                            <p class="text-gray-300">
+                                Senti utilizes advanced emotional intelligence to understand and respond to users' emotions accurately. By leveraging Google's Gemini 2.0 API, Senti analyzes sentiment, context, and emotional cues to provide empathetic and supportive interactions, ensuring users feel heard and understood.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800 p-4 rounded-xl shadow-2xl">
+                        <div class="feature-card p-8 rounded-xl">
+                            <h3 class="text-xl font-bold mb-4">💬 Natural Conversations</h3>
+                            <p class="text-gray-300">
+                                Engage in lifelike conversations with Senti, thanks to its Voice Activity Detection (VAD) and multimodal interaction capabilities. Whether you choose to speak or type, Senti ensures smooth, coherent, and contextually relevant dialogues, making every interaction feel personal and engaging.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800 p-4 rounded-xl shadow-2xl">
+                        <div class="feature-card p-8 rounded-xl">
+                            <h3 class="text-xl font-bold mb-4">🎭 Personality Adaptation</h3>
+                            <p class="text-gray-300">
+                                Senti tailors its responses based on your unique personality and preferences. With session memory, it remembers past interactions, allowing for continuity and deeper emotional connections over time. This adaptive behavior ensures that interactions remain relevant and personalized.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800 p-4 rounded-xl shadow-2xl">
+                        <div class="feature-card p-8 rounded-xl">
+                            <h3 class="text-xl font-bold mb-4">🔊 Voice Enabled</h3>
+                            <p class="text-gray-300">
+                                Communicate effortlessly with Senti using voice commands. Its real-time voice processing capabilities ensure instant, natural responses, enhancing the interactive experience. Voice-enabled features make conversations seamless and hands-free, providing convenience and accessibility.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800 p-4 rounded-xl shadow-2xl">
+                        <div class="feature-card p-8 rounded-xl">
+                            <h3 class="text-xl font-bold mb-4">🌐 Always Available</h3>
+                            <p class="text-gray-300">
+                                Senti is available 24/7, offering constant companionship and support whenever you need it. Whether it's day or night, Senti ensures that you have access to a reliable and understanding companion, helping to alleviate feelings of loneliness at any time.
+                            </p>
+                        </div>
+                    </div>
+                    <div class="bg-gray-800 p-4 rounded-xl shadow-2xl">
+                        <div class="feature-card p-8 rounded-xl">
+                            <h3 class="text-xl font-bold mb-4">🛡️ Privacy Focused</h3>
+                            <p class="text-gray-300">
+                                Your interactions with Senti are secure and confidential. We prioritize your privacy by implementing robust security measures that protect all conversations. This commitment ensures that you can share your thoughts and feelings with peace of mind, knowing your data is safe.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Newsletter Section -->
+        <section class="py-20 px-4">
+            <div class="max-w-md mx-auto text-center">
+                <h2 class="text-3xl font-bold mb-8">Join the Waitlist</h2>
+                <div class="feature-card p-8 rounded-xl">
+                    <form class="space-y-4">
+                        <input type="email" placeholder="Enter your email" 
+                               class="w-full px-4 py-3 rounded-lg bg-white/10 border border-white/20 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        <button type="submit" 
+                                class="w-full px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors">
+                            Get Early Access
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        // Create tech lines
+        function createTechLines() {
+            const container = document.querySelector('main');
+            for (let i = 0; i < 10; i++) {
+                const line = document.createElement('div');
+                line.className = 'tech-line';
+                line.style.top = `${Math.random() * 100}%`;
+                container.appendChild(line);
+            }
+        }
+
+        // Initialize animations
+        window.addEventListener('DOMContentLoaded', () => {
+            gsap.registerPlugin(ScrollTrigger, TextPlugin);
+
+            // Initial loading animation
+            const tl = gsap.timeline({
+                onComplete: () => {
+                    document.getElementById('loadingContainer').style.display = 'none';
+                    document.getElementById('mainContent').style.opacity = 1;
+                }
+            });
+
+            tl.to("#loadingText", {
+                opacity: 1,
+                duration: 1,
+                scale: 1.2
+            })
+            .to("#loadingText", {
+                opacity: 0,
+                duration: 0.5,
+                scale: 0.8,
+                delay: 0.5
+            });
+
+            // Animate tech lines
+            createTechLines();
+            gsap.utils.toArray('.tech-line').forEach(line => {
+                gsap.to(line, {
+                    scaleX: 1,
+                    opacity: 1,
+                    duration: 1,
+                    repeat: -1,
+                    repeatDelay: Math.random() * 3,
+                    ease: "none"
+                });
+            });
+
+            // Animate main content
+            gsap.to("#tagline", {
+                opacity: 1,
+                duration: 1,
+                delay: 2
+            });
+
+            gsap.to("#subTagline", {
+                opacity: 1,
+                duration: 1,
+                delay: 2.5
+            });
+
+            // Animate features on scroll
+            gsap.to("#featuresTitle", {
+                scrollTrigger: {
+                    trigger: "#featuresTitle",
+                    start: "top center+=100",
+                    toggleActions: "play none none reverse"
+                },
+                opacity: 1,
+                y: 0,
+                duration: 1
+            });
+
+            // Animate feature cards
+            gsap.utils.toArray('.feature-card').forEach((card, i) => {
+                gsap.from(card, {
+                    scrollTrigger: {
+                        trigger: card,
+                        start: "top bottom-=100",
+                        toggleActions: "play none none reverse"
+                    },
+                    opacity: 0,
+                    y: 50,
+                    duration: 0.6,
+                    delay: i * 0.1
+                });
+            });
+        });
+    </script>
+</body>
+</html>
